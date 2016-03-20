@@ -16,61 +16,48 @@ if gameinfo.getromname() == "Super Mario World (USA)" then
 		"Left",
 		"Right",
 	}
-elseif gameinfo.getromname() == "Super Mario Bros." then
-	Filename = "SMB1-1.state"
-	ButtonNames = {
-		"A",
-		"B",
-		"Up",
-		"Down",
-		"Left",
-		"Right",
-	}
 end
 
 BoxRadius = 6
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 
-Inputs = InputSize+1
+Inputs = InputSize+1+7 -- bias cell, plus a few (7) perceptrons
 Outputs = #ButtonNames
 
-Population = 300
+Nyoom = 0
+NyoomCumulator = 0
+CurrentSwarm = 0 -- ACTUAL population
+GenerationSize = 80 -- Per-generation soft-target
 DeltaDisjoint = 2.0
 DeltaWeights = 0.4
-DeltaThreshold = 1.0
+DeltaThreshold = 0.437 -- ONLY minor mutations
 
-StaleSpecies = 15
+StaleSpecies = 555 -- VERY stale
 
-MutateConnectionsChance = 0.25
-PerturbChance = 0.90
-CrossoverChance = 0.75
-LinkMutationChance = 2.0
-NodeMutationChance = 0.50
-BiasMutationChance = 0.40
+MutateConnectionsChance = 0.236
+PerturbChance = 0.72
+CrossoverChance = 0.87
+LinkMutationChance = 1.618
+NodeMutationChance = 0.618
+BiasMutationChance = 1.15
 StepSize = 0.1
-DisableMutationChance = 0.4
-EnableMutationChance = 0.2
+EnableMutationChance = Inputs * 0.0236 -- Try to enable 2.36% of genes
+DisableMutationChance = Inputs * 0.034 -- Try to disable 3.4% of genes (usually, it's ALREADY disabled)
 
-TimeoutConstant = 20
+TimeoutConstant = 97
 
 MaxNodes = 1000000
 
 function getPositions()
 	if gameinfo.getromname() == "Super Mario World (USA)" then
-		marioX = memory.read_s16_le(0x94)
-		marioY = memory.read_s16_le(0x96)
+		marioX = memory.read_s16_le(0xD1)
+		marioY = memory.read_s16_le(0xD3)
 		
 		local layer1x = memory.read_s16_le(0x1A);
 		local layer1y = memory.read_s16_le(0x1C);
 		
 		screenX = marioX-layer1x
 		screenY = marioY-layer1y
-	elseif gameinfo.getromname() == "Super Mario Bros." then
-		marioX = memory.readbyte(0x6D) * 0x100 + memory.readbyte(0x86)
-		marioY = memory.readbyte(0x03B8)+16
-	
-		screenX = memory.readbyte(0x03AD)
-		screenY = memory.readbyte(0x03B8)
 	end
 end
 
@@ -80,24 +67,6 @@ function getTile(dx, dy)
 		y = math.floor((marioY+dy)/16)
 		
 		return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
-	elseif gameinfo.getromname() == "Super Mario Bros." then
-		local x = marioX + dx + 8
-		local y = marioY + dy - 16
-		local page = math.floor(x/256)%2
-
-		local subx = math.floor((x%256)/16)
-		local suby = math.floor((y - 32)/16)
-		local addr = 0x500 + page*13*16+suby*16+subx
-		
-		if suby >= 13 or suby < 0 then
-			return 0
-		end
-		
-		if memory.readbyte(addr) ~= 0 then
-			return 1
-		else
-			return 0
-		end
 	end
 end
 
@@ -112,18 +81,6 @@ function getSprites()
 				sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
 			end
 		end		
-		
-		return sprites
-	elseif gameinfo.getromname() == "Super Mario Bros." then
-		local sprites = {}
-		for slot=0,4 do
-			local enemy = memory.readbyte(0xF+slot)
-			if enemy ~= 0 then
-				local ex = memory.readbyte(0x6E + slot)*0x100 + memory.readbyte(0x87+slot)
-				local ey = memory.readbyte(0xCF + slot)+24
-				sprites[#sprites+1] = {["x"]=ex,["y"]=ey}
-			end
-		end
 		
 		return sprites
 	end
@@ -142,8 +99,6 @@ function getExtendedSprites()
 		end		
 		
 		return extended
-	elseif gameinfo.getromname() == "Super Mario Bros." then
-		return {}
 	end
 end
 
@@ -181,10 +136,57 @@ function getInputs()
 			end
 		end
 	end
-	
-	--mariovx = memory.read_s8(0x7B)
-	--mariovy = memory.read_s8(0x7D)
-	
+
+	inputs[#inputs+1] = 0 -- allocation (velocity, X-axis)
+	Nyoom = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
+	examine = Nyoom / 8.324 -- this affects score EVERY FRAME!!!
+	Nyoom = math.ceil(math.max(examine, 0)) -- walking backwards is ignored for score purposes
+	inputs[#inputs] = examine -- potentially used for biassing neural net :)
+
+	inputs[#inputs+1] = 0 -- allocation (on the ground?)
+	examine = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
+	if examine == 1 then -- ignores touching sides (see below)
+		inputs[#inputs] = 1 -- There's only "one" expected state (see below)
+	else
+		inputs[#inputs] = 0 -- But glitches DO happen in SMW
+	end
+
+	inputs[#inputs+1] = 0 -- allocation (running into a wall?)
+	examine = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
+	if examine == 5 then -- S is for "due to scrolling"
+		inputs[#inputs] = 1 -- Solid block to the right, AND solid ground (can't go down)
+	else
+		inputs[#inputs] = 0 -- otherwise, no signal from this "special case" perceptron
+	end
+
+	-- Powerup truth table O_O
+	inputs[#inputs+1] = 0 -- allocation (tiny)
+	inputs[#inputs+1] = 0 -- allocation (tall)
+	inputs[#inputs+1] = 0 -- allocation (cape variant)
+	inputs[#inputs+1] = 0 -- allocation (fire variant)
+	examine = memory.readbyte(0x19)
+	-- some of these are mutually exclusive...
+	if examine == 0 then -- tiny flag is #0
+		inputs[#inputs] = 1 -- tiny
+		inputs[#inputs-1] = 0 -- tall BLANKED
+		inputs[#inputs-2] = 0 -- cape BLANKED
+		inputs[#inputs-3] = 0 -- fire BLANKED
+	elseif examine == 1 then -- big flag is #1
+		inputs[#inputs] = 0 -- tiny BLANKED
+		inputs[#inputs-1] = 1 -- tall
+		inputs[#inputs-2] = 0 -- cape BLANKED
+		inputs[#inputs-3] = 0 -- fire BLANKED
+	elseif examine == 2 then -- cape flag is #2
+		inputs[#inputs] = -1 -- tiny BLANKED
+		inputs[#inputs-1] = 1 -- tall (cape variant)
+		inputs[#inputs-2] = 1 -- we have a cape
+		inputs[#inputs-3] = 0 -- fire BLANKED
+	elseif examine == 3 then -- fire flag is #3
+		inputs[#inputs] = -1 -- tiny BLANKED
+		inputs[#inputs-1] = 1 -- tall (cape variant)
+		inputs[#inputs-2] = 0 -- cape BLANKED
+		inputs[#inputs-3] = 1 -- let's shoot fire
+	end
 	return inputs
 end
 
@@ -205,6 +207,7 @@ function newPool()
 	pool.currentSpecies = 1
 	pool.currentGenome = 1
 	pool.currentFrame = 0
+	pool.RealtimeFitness = 0
 	pool.maxFitness = 0
 	
 	return pool
@@ -227,7 +230,6 @@ function newGenome()
 	genome.adjustedFitness = 0
 	genome.network = {}
 	genome.maxneuron = 0
-	genome.globalRank = 0
 	genome.mutationRates = {}
 	genome.mutationRates["connections"] = MutateConnectionsChance
 	genome.mutationRates["link"] = LinkMutationChance
@@ -476,7 +478,7 @@ function linkMutate(genome, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = Inputs
+		newLink.into = math.random((InputSize+1), Inputs) -- very perceptron O_O
 	end
 	
 	if containsLink(genome.genes, newLink) then
@@ -567,7 +569,15 @@ function mutate(genome)
 		end
 		p = p - 1
 	end
-	
+
+	p = genome.mutationRates["disable"] -- DIASBLE FIRST!!!
+	while p > 0 do
+		if math.random() < p then
+			enableDisableMutate(genome, false)
+		end
+		p = p - 1
+	end
+
 	p = genome.mutationRates["enable"]
 	while p > 0 do
 		if math.random() < p then
@@ -576,13 +586,6 @@ function mutate(genome)
 		p = p - 1
 	end
 
-	p = genome.mutationRates["disable"]
-	while p > 0 do
-		if math.random() < p then
-			enableDisableMutate(genome, false)
-		end
-		p = p - 1
-	end
 end
 
 function disjoint(genes1, genes2)
@@ -645,32 +648,15 @@ function sameSpecies(genome1, genome2)
 	return dd + dw < DeltaThreshold
 end
 
-function rankGlobally()
-	local global = {}
-	for s = 1,#pool.species do
-		local species = pool.species[s]
-		for g = 1,#species.genomes do
-			table.insert(global, species.genomes[g])
-		end
-	end
-	table.sort(global, function (a,b)
-		return (a.fitness < b.fitness)
-	end)
-	
-	for g=1,#global do
-		global[g].globalRank = g
-	end
-end
-
 function calculateAverageFitness(species)
-	local total = 0
+	local species_total = 0
 	
-	for g=1,#species.genomes do
-		local genome = species.genomes[g]
-		total = total + genome.globalRank
+	for particular_critter=1,#species.genomes do
+		local genome = species.genomes[particular_critter]
+		species_total = species_total + genome.fitness
 	end
 	
-	species.averageFitness = total / #species.genomes
+	species.averageFitness = species_total / #species.genomes
 end
 
 function totalAverageFitness()
@@ -683,7 +669,7 @@ function totalAverageFitness()
 	return total
 end
 
-function cullSpecies(cutToOne)
+function cullSpecies()
 	for s = 1,#pool.species do
 		local species = pool.species[s]
 		
@@ -691,10 +677,7 @@ function cullSpecies(cutToOne)
 			return (a.fitness > b.fitness)
 		end)
 		
-		local remaining = math.ceil(#species.genomes/2)
-		if cutToOne then
-			remaining = 1
-		end
+		local remaining = math.max(math.ceil(0.5+(#species.genomes)*0.381966), 1) -- never cull the last one
 		while #species.genomes > remaining do
 			table.remove(species.genomes)
 		end
@@ -703,13 +686,14 @@ end
 
 function breedChild(species)
 	local child = {}
+	local topgenome = species.genomes[1] -- demand the best
 	if math.random() < CrossoverChance then
-		g1 = species.genomes[math.random(1, #species.genomes)]
-		g2 = species.genomes[math.random(1, #species.genomes)]
-		child = crossover(g1, g2)
+		local allspecies = pool.species
+		local anyspecies = allspecies[math.random(1, #allspecies)]
+		g2 = anyspecies.genomes[math.random(1, #anyspecies.genomes)]
+		child = crossover(topgenome, g2)
 	else
-		g = species.genomes[math.random(1, #species.genomes)]
-		child = copyGenome(g)
+		child = copyGenome(topgenome)
 	end
 	
 	mutate(child)
@@ -722,11 +706,9 @@ function removeStaleSpecies()
 
 	for s = 1,#pool.species do
 		local species = pool.species[s]
-		
 		table.sort(species.genomes, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
-		
 		if species.genomes[1].fitness > species.topFitness then
 			species.topFitness = species.genomes[1].fitness
 			species.staleness = 0
@@ -743,14 +725,19 @@ end
 
 function removeWeakSpecies()
 	local survived = {}
+	local s = 0
 
-	local sum = totalAverageFitness()
+	local global_fitness = totalAverageFitness() / #pool.species
 	for s = 1,#pool.species do
 		local species = pool.species[s]
-		breed = math.floor(species.averageFitness / sum * Population)
-		if breed >= 1 then
+		breed = species.averageFitness / global_fitness
+		if breed >= 0.42 then
 			table.insert(survived, species)
 		end
+	end
+
+	if next(survived) == nil then -- checking for empty table "the lua way" [tm]
+		table.insert(survived, next(pool.species)) -- uh... "this one lives" (but they're all rubbish)
 	end
 
 	pool.species = survived
@@ -775,47 +762,66 @@ function addToSpecies(child)
 end
 
 function newGeneration()
-	cullSpecies(false) -- Cull the bottom half of each species
-	rankGlobally()
-	removeStaleSpecies()
-	rankGlobally()
-	for s = 1,#pool.species do
-		local species = pool.species[s]
+	removeStaleSpecies() -- old generations die off over time
+	cullSpecies() -- for various reasons
+	for s, species in ipairs(pool.species) do
 		calculateAverageFitness(species)
 	end
-	removeWeakSpecies()
+	removeWeakSpecies() -- everbody dies
+	cullSpecies() -- more death... I guess O_O
+	for s, species in ipairs(pool.species) do -- (that last cull brought a few averages UP)
+		local species = pool.species[s]
+		calculateAverageFitness(species)
+	end	
+	CurrentSwarm = #pool.species -- Is anyone still alive?
+	SwarmLimit = CurrentSwarm + GenerationSize -- how much to grow
 	local sum = totalAverageFitness()
 	local children = {}
-	for s = 1,#pool.species do
-		local species = pool.species[s]
-		breed = math.floor(species.averageFitness / sum * Population) - 1
-		for i=1,breed do
-			table.insert(children, breedChild(species))
+
+	for s, species in ipairs(pool.species) do
+		global_fitness = sum / CurrentSwarm -- Just what's already been measured
+		innov = math.sqrt(species.averageFitness / global_fitness)
+		thirdexp = math.exp(innov) / 2.9 -- aprox one third?
+		fifthroot = thirdexp ^ (1 / 5)
+		breed = math.floor(fifthroot + 0.013) -- non-linear scale O_O
+		if breed > 0 then
+		species.staleness = 0 -- stale implies BELOW average
+			for i=1,breed do -- Make babies, based on the score
+				addToSpecies(breedChild(species)) -- attempt to spawn NOW!!!
+				table.insert(children, species) -- do some more later
+			end
 		end
 	end
-	cullSpecies(true) -- Cull all but the top member of each species
-	while #children + #pool.species < Population do
-		local species = pool.species[math.random(1, #pool.species)]
-		table.insert(children, breedChild(species))
+	if next(children) == nil then
+		console.writeline("Stale generation")
+		while #pool.species < SwarmLimit do -- make sure there's enough
+			basic = basicGenome()
+			addToSpecies(basic)
+		end
+	else
+		while #children + #pool.species < SwarmLimit do
+			local species = pool.species[math.random(1, #pool.species)]
+			table.insert(children, species)
+		end
+		for c, child in ipairs(children) do -- same ones from earlier
+			local child = breedChild(children[c])
+			addToSpecies(child)
+		end
 	end
-	for c=1,#children do
-		local child = children[c]
-		addToSpecies(child)
-	end
-	
+
 	pool.generation = pool.generation + 1
 	
 	writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 end
-	
+
 function initializePool()
 	pool = newPool()
 
-	for i=1,Population do
+	while #pool.species < GenerationSize do -- Start out with "this many" [tm]
 		basic = basicGenome()
 		addToSpecies(basic)
 	end
-
+	CurrentSwarm = #pool.species -- be sure to record the size
 	initializeRun()
 end
 
@@ -831,6 +837,9 @@ function initializeRun()
 	savestate.load(Filename);
 	rightmost = 0
 	pool.currentFrame = 0
+	pool.RealtimeFitness = 0
+	Nyoom = 0 -- motion starts at zero
+	NyoomCumulator = 0 -- accumulated speed bonus also starts at zero
 	timeout = TimeoutConstant
 	clearJoypad()
 	
@@ -886,6 +895,8 @@ end
 function displayGenome(genome)
 	local network = genome.network
 	local cells = {}
+	local skiplast = 0
+	local blacken = 0
 	local i = 1
 	local cell = {}
 	for dy=-BoxRadius,BoxRadius do
@@ -897,6 +908,26 @@ function displayGenome(genome)
 			cells[i] = cell
 			i = i + 1
 		end
+	end
+
+		cell = {} -- Velocity vector (X-axis)
+		cell.x = 50+5*network.neurons[i].value
+		cell.y = 70+5*(BoxRadius+1)
+		blacken = math.abs(network.neurons[i].value / 5)
+		if blacken < 0.1 then
+			blacken = -1
+		end
+		cell.value = blacken -- zero handler for display
+		cells[i] = cell
+		i = i + 1
+
+	for skiplast =i,(Inputs-1) do -- Automagically knows how many more perceptron!!!
+		cell = {}
+		cell.x = 50+5*(BoxRadius+1)
+		cell.y = 70+5*(skiplast-(i+BoxRadius))
+		cell.value = network.neurons[skiplast].value
+		cells[skiplast] = cell
+	
 	end
 	local biasCell = {}
 	biasCell.x = 80
@@ -1144,6 +1175,7 @@ saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
 
+client.speedmode(400) -- GO FASTER!!!
 
 while true do
 	local backgroundColor = 0xD0FFFFFF
@@ -1157,33 +1189,41 @@ while true do
 	if forms.ischecked(showNetwork) then
 		displayGenome(genome)
 	end
-	
-	if pool.currentFrame%5 == 0 then
-		evaluateCurrent()
-	end
+
+	evaluateCurrent() -- EVERY FRAME!!!
 
 	joypad.set(controller)
 
 	getPositions()
-	if marioX > rightmost then
-		rightmost = marioX
+	if memory.read_s16_le(0x94) > rightmost then
+		rightmost = memory.read_s16_le(0x94) -- helps detect end of level
 		timeout = TimeoutConstant
 	end
-	
+	if memory.readbyte(0x100) == 0x19 then
+		pool.currentFrame = 1 -- close enough
+		timeout = TimeoutConstant -- level hasn't started yet.
+	end
+	-- ^^^ check level start first, always (don't elseif)
+
 	timeout = timeout - 1
-	
-	
-	local timeoutBonus = pool.currentFrame / 4
-	if timeout + timeoutBonus <= 0 then
-		local fitness = rightmost - pool.currentFrame / 2
-		if gameinfo.getromname() == "Super Mario World (USA)" and rightmost > 4816 then
-			fitness = fitness + 1000
+
+	local timeoutBonus = math.floor(pool.currentFrame / 10.472)
+	if timeoutBonus < 1 then
+		timeoutBonus = 1 -- sanitized
+	end
+
+--	local oldFitness = rightmost - pool.currentFrame / 2 -- See also: NyoomCumulator
+	local score = memory.read_u24_le(0x0F34) -- literal in-game score
+	NyoomCumulator = NyoomCumulator + (Nyoom - 2.672) -- Speed is very important :)
+	pool.RealtimeFitness = 264 + score + math.ceil(NyoomCumulator) -- game score and velocity :D
+
+	if (timeout + timeoutBonus) < 0 then
+		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
+		if rightmost > 4816 and memory.readbyte(0x13D6) < 0x80 then -- 4816: yoshi island 1 & 2 
+			fitness = fitness + 9037 -- VICTORY!!! (non-realtime) bonus
 		end
-		if gameinfo.getromname() == "Super Mario Bros." and rightmost > 3186 then
-			fitness = fitness + 1000
-		end
-		if fitness == 0 then
-			fitness = -1
+		if fitness < 1 then -- it's possible to get zero, OR EVEN WORSE!!! O_O
+			fitness = 1 -- positive value is better for the weighting algorithm
 		end
 		genome.fitness = fitness
 		
@@ -1214,11 +1254,13 @@ while true do
 	end
 	if not forms.ischecked(hideBanner) then
 		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
-		gui.drawText(0, 12, "Fitness: " .. math.floor(rightmost - (pool.currentFrame) / 2 - (timeout + timeoutBonus)*2/3), 0xFF000000, 11)
+		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFF000000, 11)
 		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
 	end
 		
-	pool.currentFrame = pool.currentFrame + 1
+	if memory.readbyte(0x100) == 0x20 then
+		pool.currentFrame = pool.currentFrame + 1
+	end
 
 	emu.frameadvance();
 end
