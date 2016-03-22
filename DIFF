@@ -21,18 +21,19 @@ end
 BoxRadius = 6
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 
-Inputs = InputSize+1+7 -- bias cell, plus a few (7) perceptrons
+Inputs = InputSize+1+4 -- bias cell, plus a few (4) perceptrons
 Outputs = #ButtonNames
 
 Nyoom = 0
 NyoomCumulator = 0
-CurrentSwarm = 0 -- ACTUAL population
-GenerationSize = 80 -- Per-generation soft-target
+
+CurrentSwarm = 0 -- ACTUAL population size
+GenerationSize = 50 -- Per-generation soft-target
+StaleGatunek = 6 -- Assume unbreedable if no viable offspring
+
 DeltaDisjoint = 2.0
 DeltaWeights = 0.4
 DeltaThreshold = 0.437 -- ONLY minor mutations
-
-StaleSpecies = 555 -- VERY stale
 
 MutateConnectionsChance = 0.236
 PerturbChance = 0.72
@@ -146,46 +147,31 @@ function getInputs()
 	inputs[#inputs+1] = 0 -- allocation (on the ground?)
 	examine = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	if examine == 1 then -- ignores touching sides (see below)
-		inputs[#inputs] = 1 -- There's only "one" expected state (see below)
+		inputs[#inputs] = 0 -- Zero means NOT on the ground
 	else
-		inputs[#inputs] = 0 -- But glitches DO happen in SMW
+		inputs[#inputs] = -1 -- any other value, assume jumping
 	end
 
 	inputs[#inputs+1] = 0 -- allocation (running into a wall?)
 	examine = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
 	if examine == 5 then -- S is for "due to scrolling"
-		inputs[#inputs] = 1 -- Solid block to the right, AND solid ground (can't go down)
+		inputs[#inputs] = -1 -- Solid block to the right, AND solid ground (can't go down)
 	else
 		inputs[#inputs] = 0 -- otherwise, no signal from this "special case" perceptron
 	end
 
-	-- Powerup truth table O_O
-	inputs[#inputs+1] = 0 -- allocation (tiny)
+	-- Simplified powerups table O_O
 	inputs[#inputs+1] = 0 -- allocation (tall)
-	inputs[#inputs+1] = 0 -- allocation (cape variant)
-	inputs[#inputs+1] = 0 -- allocation (fire variant)
 	examine = memory.readbyte(0x19)
 	-- some of these are mutually exclusive...
 	if examine == 0 then -- tiny flag is #0
-		inputs[#inputs] = 1 -- tiny
-		inputs[#inputs-1] = 0 -- tall BLANKED
-		inputs[#inputs-2] = 0 -- cape BLANKED
-		inputs[#inputs-3] = 0 -- fire BLANKED
-	elseif examine == 1 then -- big flag is #1
-		inputs[#inputs] = 0 -- tiny BLANKED
-		inputs[#inputs-1] = 1 -- tall
-		inputs[#inputs-2] = 0 -- cape BLANKED
-		inputs[#inputs-3] = 0 -- fire BLANKED
+		inputs[#inputs] = 0 -- mario is NOT tall (blanked)
+	elseif examine == 1 then -- regular "big" flag is #1
+		inputs[#inputs] = 1 -- tall (mushroom variant)
 	elseif examine == 2 then -- cape flag is #2
-		inputs[#inputs] = -1 -- tiny BLANKED
-		inputs[#inputs-1] = 1 -- tall (cape variant)
-		inputs[#inputs-2] = 1 -- we have a cape
-		inputs[#inputs-3] = 0 -- fire BLANKED
+		inputs[#inputs] = 1 -- tall (cape variant)
 	elseif examine == 3 then -- fire flag is #3
-		inputs[#inputs] = -1 -- tiny BLANKED
-		inputs[#inputs-1] = 1 -- tall (cape variant)
-		inputs[#inputs-2] = 0 -- cape BLANKED
-		inputs[#inputs-3] = 1 -- let's shoot fire
+		inputs[#inputs] = 1 -- tall (cape variant)
 	end
 	return inputs
 end
@@ -201,11 +187,11 @@ end
 
 function newPool()
 	local pool = {}
-	pool.species = {}
+	pool.gatunek = {}
 	pool.generation = 0
 	pool.innovation = Outputs
-	pool.currentSpecies = 1
-	pool.currentGenome = 1
+	pool.currentGatunek = 1
+	pool.currentCultivar = 1
 	pool.currentFrame = 0
 	pool.RealtimeFitness = 0
 	pool.maxFitness = 0
@@ -213,59 +199,59 @@ function newPool()
 	return pool
 end
 
-function newSpecies()
-	local species = {}
-	species.topFitness = 0
-	species.staleness = 0
-	species.genomes = {}
-	species.averageFitness = 0
+function newGatunek()
+	local gatunek = {}
+	gatunek.topFitness = 0
+	gatunek.staleness = 0
+	gatunek.cultivars = {}
+	gatunek.averageFitness = 0
 	
-	return species
+	return gatunek
 end
 
-function newGenome()
-	local genome = {}
-	genome.genes = {}
-	genome.fitness = 0
-	genome.adjustedFitness = 0
-	genome.network = {}
-	genome.maxneuron = 0
-	genome.mutationRates = {}
-	genome.mutationRates["connections"] = MutateConnectionsChance
-	genome.mutationRates["link"] = LinkMutationChance
-	genome.mutationRates["bias"] = BiasMutationChance
-	genome.mutationRates["node"] = NodeMutationChance
-	genome.mutationRates["enable"] = EnableMutationChance
-	genome.mutationRates["disable"] = DisableMutationChance
-	genome.mutationRates["step"] = StepSize
+function newCritter()
+	local critter = {}
+	critter.genes = {}
+	critter.fitness = 0
+	critter.adjustedFitness = 0
+	critter.brain = {}
+	critter.maxneuron = 0
+	critter.mutationRates = {}
+	critter.mutationRates["connections"] = MutateConnectionsChance
+	critter.mutationRates["link"] = LinkMutationChance
+	critter.mutationRates["bias"] = BiasMutationChance
+	critter.mutationRates["node"] = NodeMutationChance
+	critter.mutationRates["enable"] = EnableMutationChance
+	critter.mutationRates["disable"] = DisableMutationChance
+	critter.mutationRates["step"] = StepSize
 	
-	return genome
+	return critter
 end
 
-function copyGenome(genome)
-	local genome2 = newGenome()
-	for g=1,#genome.genes do
-		table.insert(genome2.genes, copyGene(genome.genes[g]))
+function copyHotness(billy)
+	local cultivar2 = newCritter()
+	for g=1,#billy.genes do
+		table.insert(cultivar2.genes, copyGene(billy.genes[g]))
 	end
-	genome2.maxneuron = genome.maxneuron
-	genome2.mutationRates["connections"] = genome.mutationRates["connections"]
-	genome2.mutationRates["link"] = genome.mutationRates["link"]
-	genome2.mutationRates["bias"] = genome.mutationRates["bias"]
-	genome2.mutationRates["node"] = genome.mutationRates["node"]
-	genome2.mutationRates["enable"] = genome.mutationRates["enable"]
-	genome2.mutationRates["disable"] = genome.mutationRates["disable"]
+	cultivar2.maxneuron = billy.maxneuron
+	cultivar2.mutationRates["connections"] = billy.mutationRates["connections"]
+	cultivar2.mutationRates["link"] = billy.mutationRates["link"]
+	cultivar2.mutationRates["bias"] = billy.mutationRates["bias"]
+	cultivar2.mutationRates["node"] = billy.mutationRates["node"]
+	cultivar2.mutationRates["enable"] = billy.mutationRates["enable"]
+	cultivar2.mutationRates["disable"] = billy.mutationRates["disable"]
 	
-	return genome2
+	return cultivar2
 end
 
-function basicGenome()
-	local genome = newGenome()
+function basicCritter()
+	local gir = newCritter()
 	local innovation = 1
 
-	genome.maxneuron = Inputs
-	mutate(genome)
+	gir.maxneuron = Inputs
+	mutate(gir) -- what does the G stand for?
 	
-	return genome
+	return gir -- I don't know O_O
 end
 
 function newGene()
@@ -298,39 +284,39 @@ function newNeuron()
 	return neuron
 end
 
-function generateNetwork(genome)
-	local network = {}
-	network.neurons = {}
+function generateMind(cultivar)
+	local MeatyThinky = {}
+	MeatyThinky.neurons = {}
 	
 	for i=1,Inputs do
-		network.neurons[i] = newNeuron()
+		MeatyThinky.neurons[i] = newNeuron()
 	end
 	
 	for o=1,Outputs do
-		network.neurons[MaxNodes+o] = newNeuron()
+		MeatyThinky.neurons[MaxNodes+o] = newNeuron()
 	end
 	
-	table.sort(genome.genes, function (a,b)
+	table.sort(cultivar.genes, function (a,b)
 		return (a.out < b.out)
 	end)
-	for i=1,#genome.genes do
-		local gene = genome.genes[i]
+	for i=1,#cultivar.genes do
+		local gene = cultivar.genes[i]
 		if gene.enabled then
-			if network.neurons[gene.out] == nil then
-				network.neurons[gene.out] = newNeuron()
+			if MeatyThinky.neurons[gene.out] == nil then
+				MeatyThinky.neurons[gene.out] = newNeuron()
 			end
-			local neuron = network.neurons[gene.out]
+			local neuron = MeatyThinky.neurons[gene.out]
 			table.insert(neuron.incoming, gene)
-			if network.neurons[gene.into] == nil then
-				network.neurons[gene.into] = newNeuron()
+			if MeatyThinky.neurons[gene.into] == nil then
+				MeatyThinky.neurons[gene.into] = newNeuron()
 			end
 		end
 	end
 	
-	genome.network = network
+	cultivar.brain = MeatyThinky -- NOT a meat brain O_O
 end
 
-function evaluateNetwork(network, inputs)
+function evaluateThoughts(network, inputs)
 	table.insert(inputs, 1)
 	if #inputs ~= Inputs then
 		console.writeline("Incorrect number of neural network inputs.")
@@ -342,15 +328,15 @@ function evaluateNetwork(network, inputs)
 	end
 	
 	for _,neuron in pairs(network.neurons) do
-		local sum = 0
+		local istota = 0
 		for j = 1,#neuron.incoming do
 			local incoming = neuron.incoming[j]
 			local other = network.neurons[incoming.into]
-			sum = sum + incoming.weight * other.value
+			istota = istota + incoming.weight * other.value
 		end
 		
 		if #neuron.incoming > 0 then
-			neuron.value = sigmoid(sum)
+			neuron.value = sigmoid(istota)
 		end
 	end
 	
@@ -368,14 +354,14 @@ function evaluateNetwork(network, inputs)
 end
 
 function crossover(g1, g2)
-	-- Make sure g1 is the higher fitness genome
+	-- Make sure g1 is the higher fitness cultivar
 	if g2.fitness > g1.fitness then
 		tempg = g1
 		g1 = g2
 		g2 = tempg
 	end
 
-	local child = newGenome()
+	local child = newCritter()
 	
 	local innovations2 = {}
 	for i=1,#g2.genes do
@@ -446,11 +432,11 @@ function containsLink(genes, link)
 	end
 end
 
-function pointMutate(genome)
-	local step = genome.mutationRates["step"]
+function pointMutate(cultivar)
+	local step = cultivar.mutationRates["step"]
 	
-	for i=1,#genome.genes do
-		local gene = genome.genes[i]
+	for i=1,#cultivar.genes do
+		local gene = cultivar.genes[i]
 		if math.random() < PerturbChance then
 			gene.weight = gene.weight + math.random() * step*2 - step
 		else
@@ -459,9 +445,9 @@ function pointMutate(genome)
 	end
 end
 
-function linkMutate(genome, forceBias)
-	local neuron1 = randomNeuron(genome.genes, false)
-	local neuron2 = randomNeuron(genome.genes, true)
+function linkMutate(cultivar, forceBias)
+	local neuron1 = randomNeuron(cultivar.genes, false)
+	local neuron2 = randomNeuron(cultivar.genes, true)
 	 
 	local newLink = newGene()
 	if neuron1 <= Inputs and neuron2 <= Inputs then
@@ -481,45 +467,45 @@ function linkMutate(genome, forceBias)
 		newLink.into = math.random((InputSize+1), Inputs) -- very perceptron O_O
 	end
 	
-	if containsLink(genome.genes, newLink) then
+	if containsLink(cultivar.genes, newLink) then
 		return
 	end
 	newLink.innovation = newInnovation()
 	newLink.weight = math.random()*4-2
 	
-	table.insert(genome.genes, newLink)
+	table.insert(cultivar.genes, newLink)
 end
 
-function nodeMutate(genome)
-	if #genome.genes == 0 then
+function nodeMutate(cultivar)
+	if #cultivar.genes == 0 then
 		return
 	end
 
-	genome.maxneuron = genome.maxneuron + 1
+	cultivar.maxneuron = cultivar.maxneuron + 1
 
-	local gene = genome.genes[math.random(1,#genome.genes)]
+	local gene = cultivar.genes[math.random(1,#cultivar.genes)]
 	if not gene.enabled then
 		return
 	end
 	gene.enabled = false
 	
 	local gene1 = copyGene(gene)
-	gene1.out = genome.maxneuron
+	gene1.out = cultivar.maxneuron
 	gene1.weight = 1.0
 	gene1.innovation = newInnovation()
 	gene1.enabled = true
-	table.insert(genome.genes, gene1)
+	table.insert(cultivar.genes, gene1)
 	
 	local gene2 = copyGene(gene)
-	gene2.into = genome.maxneuron
+	gene2.into = cultivar.maxneuron
 	gene2.innovation = newInnovation()
 	gene2.enabled = true
-	table.insert(genome.genes, gene2)
+	table.insert(cultivar.genes, gene2)
 end
 
-function enableDisableMutate(genome, enable)
+function enableDisableMutate(cultivar, enable)
 	local candidates = {}
-	for _,gene in pairs(genome.genes) do
+	for _,gene in pairs(cultivar.genes) do
 		if gene.enabled == not enable then
 			table.insert(candidates, gene)
 		end
@@ -533,55 +519,55 @@ function enableDisableMutate(genome, enable)
 	gene.enabled = not gene.enabled
 end
 
-function mutate(genome)
-	for mutation,rate in pairs(genome.mutationRates) do
+function mutate(cultivar)
+	for mutation,rate in pairs(cultivar.mutationRates) do
 		if math.random(1,2) == 1 then
-			genome.mutationRates[mutation] = 0.95*rate
+			cultivar.mutationRates[mutation] = 0.95*rate
 		else
-			genome.mutationRates[mutation] = 1.05263*rate
+			cultivar.mutationRates[mutation] = 1.05263*rate
 		end
 	end
 
-	if math.random() < genome.mutationRates["connections"] then
-		pointMutate(genome)
+	if math.random() < cultivar.mutationRates["connections"] then
+		pointMutate(cultivar)
 	end
 	
-	local p = genome.mutationRates["link"]
+	local p = cultivar.mutationRates["link"]
 	while p > 0 do
 		if math.random() < p then
-			linkMutate(genome, false)
+			linkMutate(cultivar, false)
 		end
 		p = p - 1
 	end
 
-	p = genome.mutationRates["bias"]
+	p = cultivar.mutationRates["bias"]
 	while p > 0 do
 		if math.random() < p then
-			linkMutate(genome, true)
+			linkMutate(cultivar, true)
 		end
 		p = p - 1
 	end
 	
-	p = genome.mutationRates["node"]
+	p = cultivar.mutationRates["node"]
 	while p > 0 do
 		if math.random() < p then
-			nodeMutate(genome)
+			nodeMutate(cultivar)
 		end
 		p = p - 1
 	end
 
-	p = genome.mutationRates["disable"] -- DIASBLE FIRST!!!
+	p = cultivar.mutationRates["disable"] -- DIASBLE FIRST!!!
 	while p > 0 do
 		if math.random() < p then
-			enableDisableMutate(genome, false)
+			enableDisableMutate(cultivar, false)
 		end
 		p = p - 1
 	end
 
-	p = genome.mutationRates["enable"]
+	p = cultivar.mutationRates["enable"]
 	while p > 0 do
 		if math.random() < p then
-			enableDisableMutate(genome, true)
+			enableDisableMutate(cultivar, true)
 		end
 		p = p - 1
 	end
@@ -628,184 +614,186 @@ function weights(genes1, genes2)
 		i2[gene.innovation] = gene
 	end
 
-	local sum = 0
-	local coincident = 0
+	local istota = 0
+	local zgodny = 0
 	for i = 1,#genes1 do
 		local gene = genes1[i]
 		if i2[gene.innovation] ~= nil then
 			local gene2 = i2[gene.innovation]
-			sum = sum + math.abs(gene.weight - gene2.weight)
-			coincident = coincident + 1
+			istota = istota + math.abs(gene.weight - gene2.weight)
+			zgodny = zgodny + 1
 		end
 	end
 	
-	return sum / coincident
+	return istota / zgodny
 end
 	
-function sameSpecies(genome1, genome2)
-	local dd = DeltaDisjoint*disjoint(genome1.genes, genome2.genes)
-	local dw = DeltaWeights*weights(genome1.genes, genome2.genes) 
+function sameGatunek(cultivar1, cultivar2)
+	local dd = DeltaDisjoint*disjoint(cultivar1.genes, cultivar2.genes)
+	local dw = DeltaWeights*weights(cultivar1.genes, cultivar2.genes) 
 	return dd + dw < DeltaThreshold
 end
 
-function calculateAverageFitness(species)
-	local species_total = 0
+function calculateAverageFitness(gatunek)
+	local gatunek_total = 0
 	
-	for particular_critter=1,#species.genomes do
-		local genome = species.genomes[particular_critter]
-		species_total = species_total + genome.fitness
+	for particular_critter=1,#gatunek.cultivars do
+		local cultivar = gatunek.cultivars[particular_critter]
+		gatunek_total = gatunek_total + cultivar.fitness
 	end
 	
-	species.averageFitness = species_total / #species.genomes
+	gatunek.averageFitness = gatunek_total / #gatunek.cultivars
 end
 
 function totalAverageFitness()
 	local total = 0
-	for s = 1,#pool.species do
-		local species = pool.species[s]
-		total = total + species.averageFitness
+	for s = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[s]
+		total = total + gatunek.averageFitness
 	end
 
 	return total
 end
 
-function cullSpecies()
-	for s = 1,#pool.species do
-		local species = pool.species[s]
+function cullGatunek()
+	for s = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[s]
 		
-		table.sort(species.genomes, function (a,b)
+		table.sort(gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
 		
-		local remaining = math.max(math.ceil(0.5+(#species.genomes)*0.381966), 1) -- never cull the last one
-		while #species.genomes > remaining do
-			table.remove(species.genomes)
+		local remaining = math.max(math.ceil(0.5+(#gatunek.cultivars)*0.381966), 1) -- never cull the last one
+		while #gatunek.cultivars > remaining do
+			table.remove(gatunek.cultivars)
 		end
 	end
 end
 
-function breedChild(species)
-	local child = {}
-	local topgenome = species.genomes[1] -- demand the best
-	if math.random() < CrossoverChance then
-		local allspecies = pool.species
-		local anyspecies = allspecies[math.random(1, #allspecies)]
-		g2 = anyspecies.genomes[math.random(1, #anyspecies.genomes)]
-		child = crossover(topgenome, g2)
+function breedChild(stud)
+	local child = {} -- The following abstract concepts are legit:
+	local genetic_material = stud.cultivars[math.random(1, #stud.cultivars)]
+	if math.random() < CrossoverChance then -- cloning is fast, but this is fun sometimes
+		local allgatunek = pool.gatunek -- ONLY THE LIVING are on this canidates list O_O
+		local anygatunek = allgatunek[math.random(1, #allgatunek)] -- reverse wild oat sowing
+		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
+		child = crossover(genetic_material, blind_date) -- romantic calculations are involved
 	else
-		child = copyGenome(topgenome)
+		attractive_cousin = stud.cultivars[math.random(1, #stud.cultivars)]
+		child = copyHotness(attractive_cousin) -- CLONE THE HOTNESS!!!
 	end
 	
-	mutate(child)
+	mutate(child) -- one spark of life plskthx
 	
-	return child
+	return child -- this child is now an adult O_O
 end
 
-function removeStaleSpecies()
+function removeStaleGatunek()
 	local survived = {}
 
-	for s = 1,#pool.species do
-		local species = pool.species[s]
-		table.sort(species.genomes, function (a,b)
+	for s = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[s]
+		table.sort(gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
-		if species.genomes[1].fitness > species.topFitness then
-			species.topFitness = species.genomes[1].fitness
-			species.staleness = 0
+		if gatunek.cultivars[1].fitness > gatunek.topFitness then
+			gatunek.topFitness = gatunek.cultivars[1].fitness
+			gatunek.staleness = 0
 		else
-			species.staleness = species.staleness + 1
+			gatunek.staleness = gatunek.staleness + 1
 		end
-		if species.staleness < StaleSpecies or species.topFitness >= pool.maxFitness then
-			table.insert(survived, species)
+		if gatunek.staleness < StaleGatunek or gatunek.topFitness >= pool.maxFitness then
+			table.insert(survived, gatunek)
 		end
 	end
 
-	pool.species = survived
+	pool.gatunek = survived
 end
 
-function removeWeakSpecies()
+function removeWeakGatunek()
 	local survived = {}
 	local s = 0
 
-	local global_fitness = totalAverageFitness() / #pool.species
-	for s = 1,#pool.species do
-		local species = pool.species[s]
-		breed = species.averageFitness / global_fitness
-		if breed >= 0.42 then
-			table.insert(survived, species)
+	local global_fitness = totalAverageFitness() / #pool.gatunek
+	for s = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[s]
+		breed = gatunek.averageFitness / global_fitness
+		if breed >= 0.648 then
+			table.insert(survived, gatunek)
 		end
 	end
 
 	if next(survived) == nil then -- checking for empty table "the lua way" [tm]
-		table.insert(survived, next(pool.species)) -- uh... "this one lives" (but they're all rubbish)
+		table.insert(survived, next(pool.gatunek)) -- uh... "this one lives" (but they're all rubbish)
 	end
 
-	pool.species = survived
+	pool.gatunek = survived
 end
 
 
-function addToSpecies(child)
-	local foundSpecies = false
-	for s=1,#pool.species do
-		local species = pool.species[s]
-		if not foundSpecies and sameSpecies(child, species.genomes[1]) then
-			table.insert(species.genomes, child)
-			foundSpecies = true
+function addToGatunek(child)
+	local foundGatunek = false
+	for s=1,#pool.gatunek do
+		local gatunek = pool.gatunek[s]
+		if not foundGatunek and sameGatunek(child, gatunek.cultivars[1]) then
+			table.insert(gatunek.cultivars, child)
+			foundGatunek = true
 		end
 	end
 	
-	if not foundSpecies then
-		local childSpecies = newSpecies()
-		table.insert(childSpecies.genomes, child)
-		table.insert(pool.species, childSpecies)
+	if not foundGatunek then
+		local childGatunek = newGatunek()
+		table.insert(childGatunek.cultivars, child)
+		table.insert(pool.gatunek, childGatunek)
 	end
 end
 
 function newGeneration()
-	removeStaleSpecies() -- old generations die off over time
-	cullSpecies() -- for various reasons
-	for s, species in ipairs(pool.species) do
-		calculateAverageFitness(species)
+	removeStaleGatunek() -- old generations die off over time
+	cullGatunek() -- for various reasons
+	for s, gatunek in ipairs(pool.gatunek) do
+		calculateAverageFitness(gatunek)
 	end
-	removeWeakSpecies() -- everbody dies
-	cullSpecies() -- more death... I guess O_O
-	for s, species in ipairs(pool.species) do -- (that last cull brought a few averages UP)
-		local species = pool.species[s]
-		calculateAverageFitness(species)
+	removeWeakGatunek() -- everbody dies
+	cullGatunek() -- more death... I guess O_O
+	for s, gatunek in ipairs(pool.gatunek) do -- (that last cull brought a few averages UP)
+		local gatunek = pool.gatunek[s]
+		calculateAverageFitness(gatunek)
 	end	
-	CurrentSwarm = #pool.species -- Is anyone still alive?
+	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	SwarmLimit = CurrentSwarm + GenerationSize -- how much to grow
-	local sum = totalAverageFitness()
+	local istota = totalAverageFitness()
 	local children = {}
 
-	for s, species in ipairs(pool.species) do
-		global_fitness = sum / CurrentSwarm -- Just what's already been measured
-		innov = math.sqrt(species.averageFitness / global_fitness)
+	for s, gatunek in ipairs(pool.gatunek) do
+		global_fitness = istota / CurrentSwarm -- Just what's already been measured
+		innov = math.sqrt(gatunek.averageFitness / global_fitness)
 		thirdexp = math.exp(innov) / 2.9 -- aprox one third?
 		fifthroot = thirdexp ^ (1 / 5)
-		breed = math.floor(fifthroot + 0.013) -- non-linear scale O_O
+		breed = math.floor(fifthroot + 0.03) -- non-linear scale O_O
 		if breed > 0 then
-		species.staleness = 0 -- stale implies BELOW average
+		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
-				addToSpecies(breedChild(species)) -- attempt to spawn NOW!!!
-				table.insert(children, species) -- do some more later
+				table.insert(children, gatunek)
 			end
 		end
 	end
 	if next(children) == nil then
 		console.writeline("Stale generation")
-		while #pool.species < SwarmLimit do -- make sure there's enough
-			basic = basicGenome()
-			addToSpecies(basic)
+		while #pool.gatunek < SwarmLimit do -- make sure there's enough
+			basic = basicCritter()
+			addToGatunek(basic)
 		end
 	else
-		while #children + #pool.species < SwarmLimit do
-			local species = pool.species[math.random(1, #pool.species)]
-			table.insert(children, species)
-		end
-		for c, child in ipairs(children) do -- same ones from earlier
+		for c, child in ipairs(children) do
 			local child = breedChild(children[c])
-			addToSpecies(child)
+			addToGatunek(child)
+		end
+		while #pool.gatunek < SwarmLimit do
+			basic = basicCritter()
+			addToGatunek(basic) -- this one is totally random
+			local gatunek = pool.gatunek[math.random(1, #pool.gatunek)]
+			addToGatunek(breedChild(gatunek)) -- this one has good genes
 		end
 	end
 
@@ -817,11 +805,11 @@ end
 function initializePool()
 	pool = newPool()
 
-	while #pool.species < GenerationSize do -- Start out with "this many" [tm]
-		basic = basicGenome()
-		addToSpecies(basic)
+	while #pool.gatunek < GenerationSize do -- Start out with "this many" [tm]
+		basic = basicCritter()
+		addToGatunek(basic)
 	end
-	CurrentSwarm = #pool.species -- be sure to record the size
+	CurrentSwarm = #pool.gatunek -- be sure to record the size
 	initializeRun()
 end
 
@@ -843,18 +831,18 @@ function initializeRun()
 	timeout = TimeoutConstant
 	clearJoypad()
 	
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
-	generateNetwork(genome)
+	local gatunek = pool.gatunek[pool.currentGatunek]
+	local cultivar = gatunek.cultivars[pool.currentCultivar]
+	generateMind(cultivar)
 	evaluateCurrent()
 end
 
 function evaluateCurrent()
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
+	local gatunek = pool.gatunek[pool.currentGatunek]
+	local cultivar = gatunek.cultivars[pool.currentCultivar]
 
 	inputs = getInputs()
-	controller = evaluateNetwork(genome.network, inputs)
+	controller = evaluateThoughts(cultivar.brain, inputs)
 	
 	if controller["P1 Left"] and controller["P1 Right"] then
 		controller["P1 Left"] = false
@@ -873,27 +861,27 @@ if pool == nil then
 end
 
 
-function nextGenome()
-	pool.currentGenome = pool.currentGenome + 1
-	if pool.currentGenome > #pool.species[pool.currentSpecies].genomes then
-		pool.currentGenome = 1
-		pool.currentSpecies = pool.currentSpecies+1
-		if pool.currentSpecies > #pool.species then
+function nextCritter()
+	pool.currentCultivar = pool.currentCultivar + 1
+	if pool.currentCultivar > #pool.gatunek[pool.currentGatunek].cultivars then
+		pool.currentCultivar = 1
+		pool.currentGatunek = pool.currentGatunek+1
+		if pool.currentGatunek > #pool.gatunek then
 			newGeneration()
-			pool.currentSpecies = 1
+			pool.currentGatunek = 1
 		end
 	end
 end
 
 function fitnessAlreadyMeasured()
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
+	local gatunek = pool.gatunek[pool.currentGatunek]
+	local cultivar = gatunek.cultivars[pool.currentCultivar]
 	
-	return genome.fitness ~= 0
+	return cultivar.fitness ~= 0
 end
 
-function displayGenome(genome)
-	local network = genome.network
+function displayCritter(cultivar)
+	local network = cultivar.brain -- artificial neural network
 	local cells = {}
 	local skiplast = 0
 	local blacken = 0
@@ -961,7 +949,7 @@ function displayGenome(genome)
 	end
 	
 	for n=1,4 do
-		for _,gene in pairs(genome.genes) do
+		for _,gene in pairs(cultivar.genes) do
 			if gene.enabled then
 				local c1 = cells[gene.into]
 				local c2 = cells[gene.out]
@@ -1011,7 +999,7 @@ function displayGenome(genome)
 			gui.drawBox(cell.x-2,cell.y-2,cell.x+2,cell.y+2,opacity,color)
 		end
 	end
-	for _,gene in pairs(genome.genes) do
+	for _,gene in pairs(cultivar.genes) do
 		if gene.enabled then
 			local c1 = cells[gene.into]
 			local c2 = cells[gene.out]
@@ -1034,7 +1022,7 @@ function displayGenome(genome)
 	
 	if forms.ischecked(showMutationRates) then
 		local pos = 100
-		for mutation,rate in pairs(genome.mutationRates) do
+		for mutation,rate in pairs(cultivar.mutationRates) do
 			gui.drawText(100, pos, mutation .. ": " .. rate, 0xFF000000, 10)
 			pos = pos + 8
 		end
@@ -1045,22 +1033,22 @@ function writeFile(filename)
         local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.maxFitness .. "\n")
-	file:write(#pool.species .. "\n")
-        for n,species in pairs(pool.species) do
-		file:write(species.topFitness .. "\n")
-		file:write(species.staleness .. "\n")
-		file:write(#species.genomes .. "\n")
-		for m,genome in pairs(species.genomes) do
-			file:write(genome.fitness .. "\n")
-			file:write(genome.maxneuron .. "\n")
-			for mutation,rate in pairs(genome.mutationRates) do
+	file:write(#pool.gatunek .. "\n")
+        for n,gatunek in pairs(pool.gatunek) do
+		file:write(gatunek.topFitness .. "\n")
+		file:write(gatunek.staleness .. "\n")
+		file:write(#gatunek.cultivars .. "\n")
+		for m,cultivar in pairs(gatunek.cultivars) do
+			file:write(cultivar.fitness .. "\n")
+			file:write(cultivar.maxneuron .. "\n")
+			for mutation,rate in pairs(cultivar.mutationRates) do
 				file:write(mutation .. "\n")
 				file:write(rate .. "\n")
 			end
 			file:write("done\n")
 			
-			file:write(#genome.genes .. "\n")
-			for l,gene in pairs(genome.genes) do
+			file:write(#cultivar.genes .. "\n")
+			for l,gene in pairs(cultivar.genes) do
 				file:write(gene.into .. " ")
 				file:write(gene.out .. " ")
 				file:write(gene.weight .. " ")
@@ -1087,27 +1075,27 @@ function loadFile(filename)
 	pool.generation = file:read("*number")
 	pool.maxFitness = file:read("*number")
 	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-        local numSpecies = file:read("*number")
-        for s=1,numSpecies do
-		local species = newSpecies()
-		table.insert(pool.species, species)
-		species.topFitness = file:read("*number")
-		species.staleness = file:read("*number")
-		local numGenomes = file:read("*number")
-		for g=1,numGenomes do
-			local genome = newGenome()
-			table.insert(species.genomes, genome)
-			genome.fitness = file:read("*number")
-			genome.maxneuron = file:read("*number")
+        local numGatunek = file:read("*number")
+        for s=1,numGatunek do
+		local gatunek = newGatunek()
+		table.insert(pool.gatunek, gatunek)
+		gatunek.topFitness = file:read("*number")
+		gatunek.staleness = file:read("*number")
+		local numCritters = file:read("*number")
+		for g=1,numCritters do
+			local cultivar = newCritter()
+			table.insert(gatunek.cultivars, cultivar)
+			cultivar.fitness = file:read("*number")
+			cultivar.maxneuron = file:read("*number")
 			local line = file:read("*line")
 			while line ~= "done" do
-				genome.mutationRates[line] = file:read("*number")
+				cultivar.mutationRates[line] = file:read("*number")
 				line = file:read("*line")
 			end
 			local numGenes = file:read("*number")
 			for n=1,numGenes do
 				local gene = newGene()
-				table.insert(genome.genes, gene)
+				table.insert(cultivar.genes, gene)
 				local enabled
 				gene.into, gene.out, gene.weight, gene.innovation, enabled = file:read("*number", "*number", "*number", "*number", "*number")
 				if enabled == 0 then
@@ -1122,7 +1110,7 @@ function loadFile(filename)
         file:close()
 	
 	while fitnessAlreadyMeasured() do
-		nextGenome()
+		nextCritter()
 	end
 	initializeRun()
 	pool.currentFrame = pool.currentFrame + 1
@@ -1136,18 +1124,18 @@ end
 function playTop()
 	local maxfitness = 0
 	local maxs, maxg
-	for s,species in pairs(pool.species) do
-		for g,genome in pairs(species.genomes) do
-			if genome.fitness > maxfitness then
-				maxfitness = genome.fitness
+	for s,gatunek in pairs(pool.gatunek) do
+		for g,cultivar in pairs(gatunek.cultivars) do
+			if cultivar.fitness > maxfitness then
+				maxfitness = cultivar.fitness
 				maxs = s
 				maxg = g
 			end
 		end
 	end
 	
-	pool.currentSpecies = maxs
-	pool.currentGenome = maxg
+	pool.currentGatunek = maxs
+	pool.currentCultivar = maxg
 	pool.maxFitness = maxfitness
 	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
 	initializeRun()
@@ -1173,21 +1161,21 @@ loadButton = forms.button(form, "Load", loadPool, 80, 102)
 saveLoadFile = forms.textbox(form, Filename .. ".pool", 170, 25, nil, 5, 148)
 saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
-hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
+showBanner = forms.checkbox(form, "Show Banner", 5, 190)
 
 client.speedmode(400) -- GO FASTER!!!
 
 while true do
 	local backgroundColor = 0xD0FFFFFF
-	if not forms.ischecked(hideBanner) then
+	if forms.ischecked(showBanner) then
 		gui.drawBox(0, 0, 300, 26, backgroundColor, backgroundColor)
 	end
 
-	local species = pool.species[pool.currentSpecies]
-	local genome = species.genomes[pool.currentGenome]
+	local gatunek = pool.gatunek[pool.currentGatunek]
+	local cultivar = gatunek.cultivars[pool.currentCultivar]
 	
 	if forms.ischecked(showNetwork) then
-		displayGenome(genome)
+		displayCritter(cultivar)
 	end
 
 	evaluateCurrent() -- EVERY FRAME!!!
@@ -1214,8 +1202,8 @@ while true do
 
 --	local oldFitness = rightmost - pool.currentFrame / 2 -- See also: NyoomCumulator
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	NyoomCumulator = NyoomCumulator + (Nyoom - 2.672) -- Speed is very important :)
-	pool.RealtimeFitness = 264 + score + math.ceil(NyoomCumulator) -- game score and velocity :D
+	NyoomCumulator = NyoomCumulator + (Nyoom - 2.2925) -- Speed is very important :)
+	pool.RealtimeFitness = 227 + score + math.ceil(NyoomCumulator) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
@@ -1225,7 +1213,7 @@ while true do
 		if fitness < 1 then -- it's possible to get zero, OR EVEN WORSE!!! O_O
 			fitness = 1 -- positive value is better for the weighting algorithm
 		end
-		genome.fitness = fitness
+		cultivar.fitness = fitness
 		
 		if fitness > pool.maxFitness then
 			pool.maxFitness = fitness
@@ -1233,27 +1221,27 @@ while true do
 			writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 		end
 		
-		console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
-		pool.currentSpecies = 1
-		pool.currentGenome = 1
+		console.writeline("Gen " .. pool.generation .. " gatunek " .. pool.currentGatunek .. " cultivar " .. pool.currentCultivar .. " fitness: " .. fitness)
+		pool.currentGatunek = 1
+		pool.currentCultivar = 1
 		while fitnessAlreadyMeasured() do
-			nextGenome()
+			nextCritter()
 		end
 		initializeRun()
 	end
 
 	local measured = 0
 	local total = 0
-	for _,species in pairs(pool.species) do
-		for _,genome in pairs(species.genomes) do
+	for _,gatunek in pairs(pool.gatunek) do
+		for _,cultivar in pairs(gatunek.cultivars) do
 			total = total + 1
-			if genome.fitness ~= 0 then
+			if cultivar.fitness ~= 0 then
 				measured = measured + 1
 			end
 		end
 	end
-	if not forms.ischecked(hideBanner) then
-		gui.drawText(0, 0, "Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
+	if forms.ischecked(showBanner) then
+		gui.drawText(0, 0, "Gen " .. pool.generation .. " gatunek " .. pool.currentGatunek .. " cultivar " .. pool.currentCultivar .. " (" .. math.floor(measured/total*100) .. "%)", 0xFF000000, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFF000000, 11)
 		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFF000000, 11)
 	end
