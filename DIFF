@@ -159,13 +159,13 @@ function getInputs()
 	if examine == 1 then -- ignores touching sides (see below)
 		inputs[#inputs] = 0 -- Zero means NOT on the ground
 	else
-		inputs[#inputs] = -1 -- any other value, assume jumping
+		inputs[#inputs] = 1 -- any other value, assume jumping
 	end
 
 	inputs[#inputs+1] = 0 -- allocation (running into a wall?)
 	examine = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
 	if examine == 5 then -- S is for "due to scrolling"
-		inputs[#inputs] = -1 -- Solid block to the right, AND solid ground (can't go down)
+		inputs[#inputs] = 1 -- Solid block to the right, AND solid ground (can't go down)
 	else
 		inputs[#inputs] = 0 -- otherwise, no signal from this "special case" perceptron
 	end
