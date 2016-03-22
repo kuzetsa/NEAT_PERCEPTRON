@@ -18,8 +18,17 @@ if gameinfo.getromname() == "Super Mario World (USA)" then
 	}
 end
 
+math.randomseed(os.time()) -- unix timestamp to initialize seed
+burn_a_bunch = os.time() + 2 -- try for 2 seconds
+if os.time() < burn_a_bunch then
+	lots_of_attempts = math.random(1, 1327217884)
+end
+math.randomseed(lots_of_attempts) -- 
+
 BoxRadius = 6
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
+Forward_Looking = math.floor(0.37 * 16 * boxradius) -- vision tweak
+Mario_Map_Offset = math.floor(0.37 * 5 * boxradius) -- debug window tweak
 
 Inputs = InputSize+1+4 -- bias cell, plus a few (4) perceptrons
 Outputs = #ButtonNames
@@ -28,7 +37,7 @@ Nyoom = 0
 NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
-GenerationSize = 50 -- Per-generation soft-target
+GenerationGain = 10 -- Per-generation soft-target / gain rate
 StaleGatunek = 6 -- Assume unbreedable if no viable offspring
 
 DeltaDisjoint = 2.0
@@ -42,8 +51,8 @@ LinkMutationChance = 1.618
 NodeMutationChance = 0.618
 BiasMutationChance = 1.15
 StepSize = 0.1
-EnableMutationChance = Inputs * 0.0236 -- Try to enable 2.36% of genes
-DisableMutationChance = Inputs * 0.034 -- Try to disable 3.4% of genes (usually, it's ALREADY disabled)
+EnableMutationChance = Inputs * 0.034 -- Try to re-enable 3.4% of dormant genes
+DisableMutationChance = Inputs * 0.0236 -- Try to disable 2.36% of active genes
 
 TimeoutConstant = 97
 
@@ -113,15 +122,16 @@ function getInputs()
 	
 	for dy=-BoxRadius*16,BoxRadius*16,16 do
 		for dx=-BoxRadius*16,BoxRadius*16,16 do
+			XShifted = dx + Forward_Looking
 			inputs[#inputs+1] = 0
 			
-			tile = getTile(dx, dy)
+			tile = getTile(XShifted, dy)
 			if tile == 1 and marioY+dy < 0x1B0 then
 				inputs[#inputs] = 1
 			end
 			
 			for i = 1,#sprites do
-				distx = math.abs(sprites[i]["x"] - (marioX+dx))
+				distx = math.abs(sprites[i]["x"] - (marioX+XShifted))
 				disty = math.abs(sprites[i]["y"] - (marioY+dy))
 				if distx <= 8 and disty <= 8 then
 					inputs[#inputs] = -1
@@ -129,7 +139,7 @@ function getInputs()
 			end
 
 			for i = 1,#extended do
-				distx = math.abs(extended[i]["x"] - (marioX+dx))
+				distx = math.abs(extended[i]["x"] - (marioX+XShifted))
 				disty = math.abs(extended[i]["y"] - (marioY+dy))
 				if distx < 8 and disty < 8 then
 					inputs[#inputs] = -1
@@ -718,7 +728,7 @@ function removeWeakGatunek()
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
 		breed = gatunek.averageFitness / global_fitness
-		if breed >= 0.648 then
+		if breed >= 0.9 then
 			table.insert(survived, gatunek)
 		end
 	end
@@ -761,7 +771,10 @@ function newGeneration()
 		calculateAverageFitness(gatunek)
 	end	
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
-	SwarmLimit = CurrentSwarm + GenerationSize -- how much to grow
+	local Population_Control = CurrentSwarm + GenerationGain
+	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
+	local Target_gain = (GenerationGain / (0.618 + Gain_Rate)) - 3
+	local SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local istota = totalAverageFitness()
 	local children = {}
 
@@ -790,8 +803,11 @@ function newGeneration()
 			addToGatunek(child)
 		end
 		while #pool.gatunek < SwarmLimit do
-			basic = basicCritter()
-			addToGatunek(basic) -- this one is totally random
+			random_critter_chance = 1 / math.min(pool.generation, 1) -- dividing by zero is forbidden
+			if math.random() < random_critter_chance then
+				basic = basicCritter()
+				addToGatunek(basic) -- this one is totally random
+			end
 			local gatunek = pool.gatunek[math.random(1, #pool.gatunek)]
 			addToGatunek(breedChild(gatunek)) -- this one has good genes
 		end
@@ -805,7 +821,7 @@ end
 function initializePool()
 	pool = newPool()
 
-	while #pool.gatunek < GenerationSize do -- Start out with "this many" [tm]
+	while #pool.gatunek < GenerationGain do -- Start out with "this many" [tm]
 		basic = basicCritter()
 		addToGatunek(basic)
 	end
@@ -1014,11 +1030,11 @@ function displayCritter(cultivar)
 			else
 				color = opacity + 0x800000 + 0x100*color
 			end
-			gui.drawLine(c1.x+1, c1.y, c2.x-3, c2.y, color)
+			gui.(c1.x+1, c1.y, c2.x-3, c2.y, color)
 		end
 	end
 	
-	gui.drawBox(49,71,51,78,0x00000000,0x80FF0000)
+	gui.drawBox(49-Mario_Map_Offset,71,51-Mario_Map_Offset,78,0x00000000,0x80FF0000)
 	
 	if forms.ischecked(showMutationRates) then
 		local pos = 100
