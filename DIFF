@@ -27,8 +27,8 @@ math.randomseed(lots_of_attempts) --
 
 BoxRadius = 6
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
-Forward_Looking = math.floor(0.2 * 16 * BoxRadius) -- vision tweak
-Mario_Map_Offset = math.floor(0.2 * 5 * BoxRadius) -- debug window tweak
+Forward_Looking = math.floor(0.8 * 16 * BoxRadius) -- vision tweak
+Mario_Map_Offset = math.floor(0.8 * 5 * BoxRadius) -- debug window tweak
 
 Inputs = InputSize+1+4 -- bias cell, plus a few (4) perceptrons
 Outputs = #ButtonNames
