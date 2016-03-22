@@ -27,8 +27,8 @@ math.randomseed(lots_of_attempts) --
 
 BoxRadius = 6
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
-Forward_Looking = math.floor(0.37 * 16 * boxradius) -- vision tweak
-Mario_Map_Offset = math.floor(0.37 * 5 * boxradius) -- debug window tweak
+Forward_Looking = math.floor(0.37 * 16 * BoxRadius) -- vision tweak
+Mario_Map_Offset = math.floor(0.37 * 5 * BoxRadius) -- debug window tweak
 
 Inputs = InputSize+1+4 -- bias cell, plus a few (4) perceptrons
 Outputs = #ButtonNames
@@ -774,7 +774,7 @@ function newGeneration()
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
 	local Target_gain = (GenerationGain / (0.618 + Gain_Rate)) - 3
-	local SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
+	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local istota = totalAverageFitness()
 	local children = {}
 
