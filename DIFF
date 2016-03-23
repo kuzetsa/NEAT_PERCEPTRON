@@ -801,6 +801,7 @@ function newGeneration()
 			addToGatunek(basic)
 		end
 	else
+		pool.generation = pool.generation + 1 -- NEW GENERATION COMPLETE!!!
 		for c, child in ipairs(children) do
 			local child = breedChild(children[c])
 			addToGatunek(child)
@@ -816,8 +817,6 @@ function newGeneration()
 		end
 	end
 
-	pool.generation = pool.generation + 1
-	
 	writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 end
 
@@ -1248,18 +1247,8 @@ while true do
 		initializeRun()
 	end
 
-	local measured = 0
-	local total = 0
-	for _,gatunek in pairs(pool.gatunek) do
-		for _,cultivar in pairs(gatunek.cultivars) do
-			total = total + 1
-			if cultivar.fitness ~= 0 then
-				measured = measured + 1
-			end
-		end
-	end
 	if forms.ischecked(showBanner) then
-		gui.drawText(0, 0, math.floor(measured/total*100) .. "%@[" .. pool.generation .. "]~>Gatunek" .. pool.currentGatunek .. "~>Cultivar" .. pool.currentCultivar, 0xFFFFFFFF, 11)
+		gui.drawText(0, 0, [" .. pool.generation .. "] Gatunek" .. pool.currentGatunek .. " ~> Cultivar" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
 		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFFFFFFFF, 11)
 	end
