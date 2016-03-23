@@ -37,8 +37,9 @@ Nyoom = 0
 NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
-GenerationGain = 20 -- Per-generation soft-target / gain rate
-StaleGatunek = 20 -- Assume unbreedable if the rank stays low
+GenerationGain = 73 -- Per-generation soft-target / gain rate
+AntiGain = 42 -- Does more than the GenerationGain itself
+StaleGatunek = 5 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 
 DeltaDisjoint = 2.0
 DeltaWeights = 0.4
@@ -761,7 +762,7 @@ end
 
 function newGeneration()
 	removeStaleGatunek() -- old generations die off over time
-	cullGatunek() -- for various reasons
+	cullGatunek() -- Make room for non-rubbish gatunek
 	for s, gatunek in ipairs(pool.gatunek) do
 		calculateAverageFitness(gatunek)
 	end
@@ -774,7 +775,7 @@ function newGeneration()
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
-	local Target_gain = (GenerationGain / (0.618 + Gain_Rate)) - 3
+	local Target_gain = (GenerationGain / (0.618 + Gain_Rate)) - AntiGain -- Limiter
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local istota = totalAverageFitness()
 	local children = {}
@@ -802,10 +803,6 @@ function newGeneration()
 		end
 	else
 		pool.generation = pool.generation + 1 -- NEW GENERATION COMPLETE!!!
-		for c, child in ipairs(children) do
-			local child = breedChild(children[c])
-			addToGatunek(child)
-		end
 		while #pool.gatunek < SwarmLimit do
 			random_critter_chance = 1 / math.min(pool.generation, 1) -- dividing by zero is forbidden
 			if math.random() < random_critter_chance then
