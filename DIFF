@@ -1221,15 +1221,15 @@ while true do
 --	local oldFitness = rightmost - pool.currentFrame / 2 -- See also: NyoomCumulator
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
 	NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
-	pool.RealtimeFitness = 251 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
+	pool.RealtimeFitness = 254 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
 		if rightmost > 4816 and memory.readbyte(0x13D6) < 0x80 then -- 4816: yoshi island 1 & 2 
 			fitness = fitness + 500 -- VICTORY!!! (non-realtime) bonus
 		end
-		if fitness < 1 then -- it's possible to get zero, OR EVEN WORSE!!! O_O
-			fitness = 1 -- positive value is better for the weighting algorithm
+		if fitness < 0 then
+			fitness = 0
 		end
 		cultivar.fitness = fitness
 		
