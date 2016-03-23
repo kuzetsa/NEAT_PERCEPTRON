@@ -788,7 +788,9 @@ function newGeneration()
 		if breed > 0 then
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
-				table.insert(children, gatunek)
+				if gatunek.averageFitness > 1 then -- for sanity
+					table.insert(children, gatunek)
+				end
 			end
 		end
 	end
@@ -948,7 +950,7 @@ function displayCritter(cultivar)
 		cells[MaxNodes+o] = cell
 		local color
 		if cell.value > 0 then
-			color = 0xFF3322AA
+			color = 0xFF452AFF
 		else
 			color = 0xFFFFFFFF
 		end
@@ -1008,9 +1010,9 @@ function displayCritter(cultivar)
 			local color = math.floor((cell.value+1)/2*256)
 			if color > 255 then color = 255 end
 			if color < 0 then color = 0 end
-			local opacity = 0x20000000
+			local opacity = 0xCC000000
 			if cell.value == 0 then
-				opacity = 0x50000000
+				opacity = 0x77000000
 			end
 			color = opacity + color*0x10000 + color*0x100 + color
 			gui.drawBox(cell.x-1,cell.y-1,cell.x+1,cell.y+1,opacity,color)
@@ -1020,9 +1022,9 @@ function displayCritter(cultivar)
 		if gene.enabled then
 			local c1 = cells[gene.into]
 			local c2 = cells[gene.out]
-			local opacity = 0xA0000000
+			local opacity = 0xCC000000
 			if c1.value == 0 then
-				opacity = 0x20000000
+				opacity = 0x77000000
 			end
 			
 			local color = 0x80-math.floor(math.abs(sigmoid(gene.weight))*0x80)
@@ -1031,7 +1033,7 @@ function displayCritter(cultivar)
 			else
 				color = opacity + 0x800000 + 0x100*color
 			end
-			gui.drawLine(c1.x+1, c1.y, c2.x-3, c2.y, color)
+			gui.drawLine(c1.x+1, c1.y, c2.x-1, c2.y, color)
 		end
 	end
 	
@@ -1183,7 +1185,7 @@ client.speedmode(400) -- GO FASTER!!!
 while true do
 	local backgroundColor = 0xB7B54494
 	if forms.ischecked(showBanner) then
-		gui.drawBox(0, 0, 300, 38, backgroundColor, backgroundColor)
+		gui.drawBox(0, 0, 300, 26, backgroundColor, backgroundColor)
 	end
 
 	local gatunek = pool.gatunek[pool.currentGatunek]
@@ -1257,11 +1259,9 @@ while true do
 		end
 	end
 	if forms.ischecked(showBanner) then
-		gui.drawText(0, 0, "Gen " .. pool.generation .. " gatunek " .. pool.currentGatunek .. " cultivar " .. pool.currentCultivar .. " (" .. math.floor(measured/total*100) .. "%)", 0xFFFFFFFF, 11)
+		gui.drawText(0, 0, math.floor(measured/total*100) .. "%@[" .. pool.generation .. "]~>Gatunek" .. pool.currentGatunek .. "~>Cultivar" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
 		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFFFFFFFF, 11)
-		gui.drawText(0, 24, "0x100: " .. StatusRegister, 0xFFFFFFFF, 11)
-		gui.drawText(100, 24, "CurrentFrame: " .. pool.currentFrame, 0xFFFFFFFF, 11)
 	end
 		
 
