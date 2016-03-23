@@ -942,17 +942,17 @@ function displayCritter(cultivar)
 	
 	for o = 1,Outputs do
 		cell = {}
-		cell.x = 220
-		cell.y = 30 + 8 * o
+		cell.x = 200
+		cell.y = 45 + 9 * o
 		cell.value = network.neurons[MaxNodes + o].value
 		cells[MaxNodes+o] = cell
 		local color
 		if cell.value > 0 then
-			color = 0xFF0000FF
+			color = 0xFF3322AA
 		else
 			color = 0xFFFFFFFF
 		end
-		gui.drawText(223, 24+8*o, ButtonNames[o], color, 9)
+		gui.drawText(203, 39+9*o, ButtonNames[o], color, 9)
 	end
 	
 	for n,neuron in pairs(network.neurons) do
