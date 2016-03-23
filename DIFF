@@ -1209,6 +1209,7 @@ while true do
 	end
 	if StatusRegister == 0x14 then -- mario's brain is active
 		pool.EvaluatedFrames = pool.EvaluatedFrames + 1
+		NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
 	end
 
 	timeout = timeout - 1
@@ -1219,7 +1220,6 @@ while true do
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
 	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.2925) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
