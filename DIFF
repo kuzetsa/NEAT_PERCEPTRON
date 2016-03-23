@@ -203,7 +203,7 @@ function newPool()
 	pool.innovation = Outputs
 	pool.currentGatunek = 1
 	pool.currentCultivar = 1
-	pool.currentFrame = 0
+	pool.EvaluatedFrames = 0
 	pool.RealtimeFitness = 0
 	pool.maxFitness = 0
 	
@@ -842,7 +842,7 @@ end
 function initializeRun()
 	savestate.load(Filename);
 	rightmost = 0
-	pool.currentFrame = 0
+	pool.EvaluatedFrames = 0
 	pool.RealtimeFitness = 0
 	Nyoom = 0 -- motion starts at zero
 	NyoomCumulator = 0 -- accumulated speed bonus also starts at zero
@@ -1200,27 +1200,27 @@ while true do
 
 	getPositions()
 
-	StatusRegister = memory.readbyte(0x100) -- readbyte is weird O_O
+	-- This lets us know if mario is still alive and game is active :)
+	StatusRegister = memory.readbyte(0x100) + memory.readbyte(0x9D)
 
 	if memory.read_s16_le(0x94) > rightmost then
 		rightmost = memory.read_s16_le(0x94) -- helps detect end of level
 		timeout = TimeoutConstant
 	end
-	if StatusRegister == 0x14 then -- hex is not decimal!!!
-		pool.currentFrame = pool.currentFrame + 1
+	if StatusRegister == 0x14 then -- mario's brain is active
+		pool.EvaluatedFrames = pool.EvaluatedFrames + 1
 	end
 
 	timeout = timeout - 1
 
-	local timeoutBonus = math.floor(pool.currentFrame / 10.472)
+	local timeoutBonus = math.floor(pool.EvaluatedFrames / 10.472)
 	if timeoutBonus < 1 then
 		timeoutBonus = 1 -- sanitized
 	end
 
---	local oldFitness = rightmost - pool.currentFrame / 2 -- See also: NyoomCumulator
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
 	NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
-	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
+	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.2925) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
