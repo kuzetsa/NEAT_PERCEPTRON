@@ -1248,7 +1248,7 @@ while true do
 	end
 
 	if forms.ischecked(showBanner) then
-		gui.drawText(0, 0, [" .. pool.generation .. "] Gatunek" .. pool.currentGatunek .. " ~> Cultivar" .. pool.currentCultivar, 0xFFFFFFFF, 11)
+		gui.drawText(0, 0, "[" .. pool.generation .. "] Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
 		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFFFFFFFF, 11)
 	end
