@@ -1130,7 +1130,6 @@ function loadFile(filename)
 		nextCritter()
 	end
 	initializeRun()
-	pool.currentFrame = pool.currentFrame + 1
 end
  
 function loadPool()
@@ -1156,7 +1155,6 @@ function playTop()
 	pool.maxFitness = maxfitness
 	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
 	initializeRun()
-	pool.currentFrame = pool.currentFrame + 1
 	return
 end
 
@@ -1221,7 +1219,7 @@ while true do
 --	local oldFitness = rightmost - pool.currentFrame / 2 -- See also: NyoomCumulator
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
 	NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
-	pool.RealtimeFitness = 254 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
+	pool.RealtimeFitness = 246 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
