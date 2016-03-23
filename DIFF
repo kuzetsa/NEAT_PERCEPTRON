@@ -37,8 +37,8 @@ Nyoom = 0
 NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
-GenerationGain = 50 -- Per-generation soft-target / gain rate
-StaleGatunek = 6 -- Assume unbreedable if no viable offspring
+GenerationGain = 20 -- Per-generation soft-target / gain rate
+StaleGatunek = 20 -- Assume unbreedable if the rank stays low
 
 DeltaDisjoint = 2.0
 DeltaWeights = 0.4
@@ -674,7 +674,7 @@ function cullGatunek()
 			return (a.fitness > b.fitness)
 		end)
 		
-		local remaining = math.max(math.ceil(0.5+(#gatunek.cultivars)*0.381966), 1) -- never cull the last one
+		local remaining = math.max(math.ceil(0.5+(#gatunek.cultivars)*0.6614756), 1) -- never cull the last one
 		while #gatunek.cultivars > remaining do
 			table.remove(gatunek.cultivars)
 		end
@@ -729,7 +729,7 @@ function removeWeakGatunek()
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
 		breed = gatunek.averageFitness / global_fitness
-		if breed >= 0.9 then
+		if breed >= 0.55 then
 			table.insert(survived, gatunek)
 		end
 	end
@@ -1219,15 +1219,15 @@ while true do
 --	local oldFitness = rightmost - pool.currentFrame / 2 -- See also: NyoomCumulator
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
 	NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
-	pool.RealtimeFitness = 246 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
+	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.currentFrame * 2.2925) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
 		if rightmost > 4816 and memory.readbyte(0x13D6) < 0x80 then -- 4816: yoshi island 1 & 2 
 			fitness = fitness + 500 -- VICTORY!!! (non-realtime) bonus
 		end
-		if fitness < 0 then
-			fitness = 0
+		if fitness < 1 then -- zero is a "magic number" to indicate untested status
+			fitness = 1
 		end
 		cultivar.fitness = fitness
 		
