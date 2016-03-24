@@ -775,7 +775,7 @@ function newGeneration()
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
-	local Target_gain = (GenerationGain / (0.618 + Gain_Rate)) - AntiGain -- Limiter
+	local Target_gain = math.max((GenerationGain / (0.618 + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local istota = totalAverageFitness()
 	local children = {}
