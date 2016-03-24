@@ -797,7 +797,7 @@ function newGeneration()
 	end
 	if next(children) == nil then
 		console.writeline("Stale generation")
-		while #pool.gatunek < SwarmLimit do -- make sure there's enough
+		while #pool.gatunek <= SwarmLimit do -- generate 1 (one) critter even if we're at the limit
 			basic = basicCritter()
 			addToGatunek(basic)
 		end
@@ -1217,7 +1217,7 @@ while true do
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.2925) -- game score and velocity :D
+	pool.RealtimeFitness = 111 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.2925) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
