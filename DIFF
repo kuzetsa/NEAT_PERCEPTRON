@@ -785,7 +785,7 @@ function newGeneration()
 		innov = math.sqrt(gatunek.averageFitness / global_fitness)
 		threethreethree = math.exp(innov) / 3333 -- actually that's four threes
 		fifthroot = threethreethree ^ (1 / 3) -- third root
-		breed = math.floor(fifthroot * 1000) - 90
+		breed = math.floor(fifthroot * 1000) - 80 -- TODO: make tunable the offset (80)
 		if breed > 0 then -- "breeding tickets" for bad VS good genes
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
@@ -1219,7 +1219,7 @@ while true do
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
 	pool.RealtimeFitness = 111 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.2925) -- game score and velocity :D
 
-	if (timeout + timeoutBonus) < 0 then
+	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
 		if rightmost > 4816 and memory.readbyte(0x13D6) < 0x80 then -- 4816: yoshi island 1 & 2 
 			fitness = fitness + 500 -- VICTORY!!! (non-realtime) bonus
