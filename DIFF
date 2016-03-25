@@ -674,8 +674,8 @@ function cullGatunek()
 		table.sort(gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
-		
-		local remaining = math.max(math.ceil((#gatunek.cultivars)*0.75628), 1) -- never cull the last one
+ -- never cull the last 4 (four)
+		local remaining = math.max(math.ceil((1.4 + #gatunek.cultivars)*0.658), 4)
 		while #gatunek.cultivars > remaining do
 			table.remove(gatunek.cultivars)
 		end
