@@ -811,7 +811,7 @@ function newGeneration()
 	else
 		pool.generation = pool.generation + 1 -- NEW GENERATION COMPLETE!!!
 		while #pool.gatunek <= SwarmLimit do
-			random_critter_chance = 1 / math.min(pool.generation, 1) -- dividing by zero is forbidden
+			random_critter_chance = 1 / math.max(pool.generation, 1) -- dividing by zero is forbidden
 			if math.random() < random_critter_chance then
 				basic = basicCritter()
 				addToGatunek(basic) -- this one is totally random
