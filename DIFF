@@ -736,7 +736,7 @@ function removeWeakGatunek()
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
 		breeding_pop_gain = 42 / math.exp(0.27 * current_pass / GenerationGain)
-		survive_critter = breeding_pop_gain * gatunek.averageFitness / global_fitness
+		survive_critter = math.max(breeding_pop_gain, 1) * gatunek.averageFitness / global_fitness
 		if math.random() < survive_critter then
 			table.insert(survived, gatunek)
 			current_pass = current_pass + 1
