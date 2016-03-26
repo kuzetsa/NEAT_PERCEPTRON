@@ -790,10 +790,11 @@ function newGeneration()
 
 	for s, gatunek in ipairs(pool.gatunek) do
 		global_fitness = istota / CurrentSwarm -- Just what's already been measured
-		innov = math.sqrt(gatunek.averageFitness / global_fitness)
+		innov = math.sqrt(gatunek.averageFitness / global_fitness) -- compare to global average
 		threethreethree = math.exp(innov) / 3333 -- actually that's four threes
-		fifthroot = threethreethree ^ (1 / 3) -- third root
-		breed = math.floor(fifthroot * 1000) - 87 -- TODO: make tunable the offset (87)
+		thirdroot = threethreethree ^ (1/3) -- third root from above step
+		thirdthird = 3333 ^ (1/3) -- third root of 3333
+		breed = math.floor(math.sqrt(3333 * thirdroot) - thirdthird) -- three?
 		if breed > 0 then -- "breeding tickets" for bad VS good genes
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
