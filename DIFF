@@ -647,14 +647,15 @@ function sameGatunek(cultivar1, cultivar2)
 end
 
 function calculateAverageFitness(gatunek)
-	local gatunek_total = 0
+	local cultivars_accumulator = 0
+	local number_tested = #gatunek.cultivars
 	
-	for particular_critter=1,#gatunek.cultivars do
+	for particular_critter=1,number_tested do
 		local cultivar = gatunek.cultivars[particular_critter]
-		gatunek_total = gatunek_total + cultivar.fitness
+		cultivars_accumulator = cultivars_accumulator + cultivar.fitness
 	end
-	
-	gatunek.averageFitness = gatunek_total / #gatunek.cultivars
+-- filter false positives (otherwise "nothing special" might out-breed "actually good")
+	gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 5))
 end
 
 function totalAverageFitness()
