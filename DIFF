@@ -729,7 +729,7 @@ function removeWeakGatunek()
 	local global_fitness = totalAverageFitness() / #pool.gatunek
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
-		breeding_pop_gain = 5 / math.exp(CurrentSwarm / GenerationGain)
+		breeding_pop_gain = 10 / math.exp(CurrentSwarm / GenerationGain)
 		breed = breeding_pop_gain * gatunek.averageFitness / global_fitness
 		if breed >= 0.618 then
 			table.insert(survived, gatunek)
