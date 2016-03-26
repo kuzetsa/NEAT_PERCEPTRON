@@ -728,7 +728,7 @@ function removeWeakGatunek()
 	local current_pass = 0
 
 	table.sort(pool.gatunek, function (a,b)
-		return (a.averageFitness < b.averageFitness)
+		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
 	local global_fitness = totalAverageFitness() / #pool.gatunek
