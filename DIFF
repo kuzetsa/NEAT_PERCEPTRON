@@ -154,7 +154,7 @@ function getInputs()
 	inputs[#inputs+1] = 0 -- allocation (velocity, X-axis)
 	Nyoom = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
 	examine = Nyoom / 8.324 -- this affects score EVERY FRAME!!!
-	Nyoom = math.ceil(math.max(examine, 0)) -- walking backwards is ignored for score purposes
+	Nyoom = math.max(examine, 0) -- walking backwards is ignored for score purposes
 	inputs[#inputs] = examine -- potentially used for biassing neural net :)
 
 	inputs[#inputs+1] = 0 -- allocation (on the ground?)
@@ -1233,7 +1233,7 @@ while true do
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.57) -- game score and velocity :D
+	pool.RealtimeFitness = 222 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.3)
 
 	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
