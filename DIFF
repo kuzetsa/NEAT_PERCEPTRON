@@ -160,7 +160,7 @@ function getInputs()
 	inputs[#inputs+1] = 0 -- allocation (on the ground?)
 	examine = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	if examine == 1 then -- ignores touching sides (see below)
-		inputs[#inputs] = 0 -- Zero means NOT on the ground
+		inputs[#inputs] = -1 -- Zero means NOT on the ground
 	else
 		inputs[#inputs] = 1 -- any other value, assume jumping
 	end
@@ -170,7 +170,7 @@ function getInputs()
 	if examine == 5 then -- S is for "due to scrolling"
 		inputs[#inputs] = 1 -- Solid block to the right, AND solid ground (can't go down)
 	else
-		inputs[#inputs] = 0 -- otherwise, no signal from this "special case" perceptron
+		inputs[#inputs] = -1
 	end
 
 	-- Simplified powerups table O_O
@@ -178,7 +178,7 @@ function getInputs()
 	examine = memory.readbyte(0x19)
 	-- some of these are mutually exclusive...
 	if examine == 0 then -- tiny flag is #0
-		inputs[#inputs] = 0 -- mario is NOT tall (blanked)
+		inputs[#inputs] = -1 -- mario is NOT tall (blanked)
 	elseif examine == 1 then -- regular "big" flag is #1
 		inputs[#inputs] = 1 -- tall (mushroom variant)
 	elseif examine == 2 then -- cape flag is #2
@@ -1233,7 +1233,7 @@ while true do
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.2925) -- game score and velocity :D
+	pool.RealtimeFitness = 222 + score + NyoomCumulator - math.ceil(pool.EvaluatedFrames * 2.57) -- game score and velocity :D
 
 	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
