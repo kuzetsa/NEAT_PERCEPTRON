@@ -650,7 +650,7 @@ end
 function calculateAverageFitness(gatunek)
 	local number_tested = #gatunek.cultivars
 	local UnFalsePositive = math.max(3 - number_tested, 0)
-	local cultivars_accumulator = pool.RecentFitness * UnFalsePositive
+	local cultivars_accumulator = RecentFitness * UnFalsePositive
 	
 	for particular_critter=1,number_tested do
 		local cultivar = gatunek.cultivars[particular_critter]
