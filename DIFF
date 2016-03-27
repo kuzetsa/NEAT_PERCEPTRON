@@ -651,13 +651,16 @@ function calculateAverageFitness(gatunek)
 	local number_tested = #gatunek.cultivars
 	local UnFalsePositive = math.max(3 - number_tested, 0)
 	local cultivars_accumulator = RecentFitness * UnFalsePositive
-	
-	for particular_critter=1,number_tested do
-		local cultivar = gatunek.cultivars[particular_critter]
-		cultivars_accumulator = cultivars_accumulator + cultivar.fitness
+	if number_tested == 1 and gatunek.cultivars[1].fitness <= 1 then
+		gatunek.averageFitness = 1 -- for sanity, allow fast cull
+	else
+		for particular_critter=1,number_tested do
+			local cultivar = gatunek.cultivars[particular_critter]
+			cultivars_accumulator = cultivars_accumulator + cultivar.fitness
+		end
+		-- filter false positives (otherwise "nothing special" might out-breed "actually good")
+		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 3))
 	end
--- filter false positives (otherwise "nothing special" might out-breed "actually good")
-	gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 3))
 end
 
 function totalAverageFitness()
@@ -799,7 +802,7 @@ function newGeneration()
 		if breed > 0 then -- "breeding tickets" for bad VS good genes
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
-				if gatunek.averageFitness > 1 then -- for sanity
+				if gatunek.averageFitness > 1 then -- for sanity, allow fast cull
 					table.insert(children, gatunek)
 				end
 			end
