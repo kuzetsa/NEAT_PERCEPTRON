@@ -48,7 +48,7 @@ DeltaThreshold = 0.437 -- ONLY minor mutations
 
 MutateConnectionsChance = 0.236
 PerturbChance = 0.72
-CrossoverChance = 0.87
+CrossoverChance = 0.91
 LinkMutationChance = 2.883
 NodeMutationChance = 1.869
 BiasMutationChance = 1.15
@@ -450,7 +450,7 @@ function pointMutate(cultivar)
 	
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
-		if math.random() < PerturbChance then
+		if PerturbChance > math.random() then
 			gene.weight = gene.weight + math.random() * step*2 - step
 		else
 			gene.weight = math.random()*4-2
@@ -541,13 +541,13 @@ function mutate(cultivar)
 		end
 	end
 
-	if math.random() < cultivar.mutationRates["connections"] then
+	if cultivar.mutationRates["connections"] > math.random() then
 		pointMutate(cultivar)
 	end
 	
 	local p = cultivar.mutationRates["link"]
 	while p > 0 do
-		if math.random() < p then
+		if p > math.random() then
 			linkMutate(cultivar, false)
 		end
 		p = p - 1
@@ -555,7 +555,7 @@ function mutate(cultivar)
 
 	p = cultivar.mutationRates["bias"]
 	while p > 0 do
-		if math.random() < p then
+		if p > math.random() then
 			linkMutate(cultivar, true)
 		end
 		p = p - 1
@@ -563,7 +563,7 @@ function mutate(cultivar)
 	
 	p = cultivar.mutationRates["node"]
 	while p > 0 do
-		if math.random() < p then
+		if p > math.random() then
 			nodeMutate(cultivar)
 		end
 		p = p - 1
@@ -571,7 +571,7 @@ function mutate(cultivar)
 
 	p = cultivar.mutationRates["disable"] -- DIASBLE FIRST!!!
 	while p > 0 do
-		if math.random() < p then
+		if p > math.random() then
 			enableDisableMutate(cultivar, false)
 		end
 		p = p - 1
@@ -579,7 +579,7 @@ function mutate(cultivar)
 
 	p = cultivar.mutationRates["enable"]
 	while p > 0 do
-		if math.random() < p then
+		if p > math.random() then
 			enableDisableMutate(cultivar, true)
 		end
 		p = p - 1
@@ -649,7 +649,7 @@ end
 
 function calculateAverageFitness(gatunek)
 	local number_tested = #gatunek.cultivars
-	local UnFalsePositive = math.max(3 - number_tested, 0)
+	local UnFalsePositive = math.max(7 - number_tested, 0)
 	local cultivars_accumulator = RecentFitness * UnFalsePositive
 	if number_tested == 1 and gatunek.cultivars[1].fitness <= 1 then
 		gatunek.averageFitness = 1 -- for sanity, allow fast cull
@@ -659,7 +659,7 @@ function calculateAverageFitness(gatunek)
 			cultivars_accumulator = cultivars_accumulator + cultivar.fitness
 		end
 		-- filter false positives (otherwise "nothing special" might out-breed "actually good")
-		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 3))
+		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 7))
 	end
 end
 
@@ -681,8 +681,8 @@ function cullGatunek()
 			return (a.fitness > b.fitness)
 		end)
  -- never cull the last 4 (four)
-		local remaining = math.max(math.ceil((1.4 + #gatunek.cultivars)*0.658), 4)
-		while #gatunek.cultivars > remaining do
+		local remaining_target = math.max(math.ceil((1.4 + #gatunek.cultivars)*0.658), 4)
+		while #gatunek.cultivars > remaining_target do
 			table.remove(gatunek.cultivars)
 		end
 	end
@@ -691,7 +691,7 @@ end
 function breedChild(stud)
 	local child = {} -- The following abstract concepts are legit:
 	local genetic_material = stud.cultivars[math.random(1, #stud.cultivars)]
-	if math.random() < CrossoverChance then -- cloning is fast, but this is fun sometimes
+	if CrossoverChance > math.random() then -- cloning is fast, but this is fun sometimes
 		local allgatunek = pool.gatunek -- ONLY THE LIVING are on this canidates list O_O
 		local anygatunek = allgatunek[math.random(1, #allgatunek)] -- reverse wild oat sowing
 		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
@@ -740,9 +740,9 @@ function removeWeakGatunek()
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
-		breeding_pop_gain = 42 / math.exp(0.27 * current_pass / GenerationGain)
-		survive_critter = math.min(breeding_pop_gain, 0.555) * gatunek.averageFitness / RecentFitness
-		if math.random() < survive_critter then
+		breeding_pop_gain = 5 / math.exp(0.16 * current_pass / GenerationGain)
+		survive_critter = math.min(breeding_pop_gain, math.sqrt(2)) * gatunek.averageFitness / RecentFitness
+		if survive_critter > math.random() then
 			table.insert(survived, gatunek)
 			current_pass = current_pass + 1
 		end
@@ -818,7 +818,7 @@ function newGeneration()
 		pool.generation = pool.generation + 1 -- NEW GENERATION COMPLETE!!!
 		while #pool.gatunek <= SwarmLimit do
 			random_critter_chance = 1 / math.max(pool.generation, 1) -- dividing by zero is forbidden
-			if math.random() < random_critter_chance then
+			if random_critter_chance > math.random() then
 				basic = basicCritter()
 				addToGatunek(basic) -- this one is totally random
 			end
