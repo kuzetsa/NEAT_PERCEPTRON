@@ -40,6 +40,7 @@ CurrentSwarm = 0 -- ACTUAL population size
 GenerationGain = 19 -- Per-generation soft-target / gain rate
 AntiGain = 5 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+RecentFitness = 0 -- false positive rejection
 
 DeltaDisjoint = 2.0
 DeltaWeights = 0.4
@@ -207,7 +208,6 @@ function newPool()
 	pool.EvaluatedFrames = 0
 	pool.RealtimeFitness = 0
 	pool.PeakFitness = 0
-	pool.RecentFitness = 0 -- false positive rejection
 	
 	return pool
 end
@@ -649,8 +649,8 @@ end
 
 function calculateAverageFitness(gatunek)
 	local number_tested = #gatunek.cultivars
-	local un-false_positive = math.max(3 - number_tested, 0)
-	local cultivars_accumulator = pool.RecentFitness * un-false_positive
+	local UnFalsePositive = math.max(3 - number_tested, 0)
+	local cultivars_accumulator = pool.RecentFitness * UnFalsePositive
 	
 	for particular_critter=1,number_tested do
 		local cultivar = gatunek.cultivars[particular_critter]
@@ -734,11 +734,11 @@ function removeWeakGatunek()
 		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
-	pool.RecentFitness = totalAverageFitness() / #pool.gatunek
+	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
 		breeding_pop_gain = 42 / math.exp(0.27 * current_pass / GenerationGain)
-		survive_critter = math.max(breeding_pop_gain, 1) * gatunek.averageFitness / pool.RecentFitness
+		survive_critter = math.max(breeding_pop_gain, 1) * gatunek.averageFitness / RecentFitness
 		if math.random() < survive_critter then
 			table.insert(survived, gatunek)
 			current_pass = current_pass + 1
@@ -773,13 +773,13 @@ end
 function newGeneration()
 	removeStaleGatunek() -- old generations die off over time
 	cullGatunek() -- Make room for non-rubbish gatunek
-	for s, gatunek in ipairs(pool.gatunek) do
+	for g, gatunek in ipairs(pool.gatunek) do
 		calculateAverageFitness(gatunek)
 	end
 	removeWeakGatunek() -- everbody dies
 	cullGatunek() -- more death... I guess O_O
-	for s, gatunek in ipairs(pool.gatunek) do -- (that last cull brought a few averages UP)
-		local gatunek = pool.gatunek[s]
+	for g, gatunek in ipairs(pool.gatunek) do -- (that last cull brought a few averages UP)
+		local gatunek = pool.gatunek[g]
 		calculateAverageFitness(gatunek)
 	end	
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
@@ -787,11 +787,11 @@ function newGeneration()
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
 	local Target_gain = math.max((GenerationGain / (0.618 + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
-	pool.RecentFitness = totalAverageFitness() / #pool.gatunek
+	RecentFitness = totalAverageFitness() / #pool.gatunek
 	local children = {}
 
-	for s, gatunek in ipairs(pool.gatunek) do
-		innov = math.sqrt(gatunek.averageFitness / pool.RecentFitness) -- compare to global average
+	for g, gatunek in ipairs(pool.gatunek) do
+		innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
 		threethreethree = math.exp(innov) / 3333 -- actually that's four threes
 		thirdroot = threethreethree ^ (1/3) -- third root from above step
 		thirdthird = 3333 ^ (1/3) -- third root of 3333
@@ -1147,19 +1147,19 @@ end
 
 function playTop()
 	local PeakFitness = 0
-	local maxs, maxg
-	for s,gatunek in pairs(pool.gatunek) do
-		for g,cultivar in pairs(gatunek.cultivars) do
+	local maxg, maxc
+	for g,gatunek in pairs(pool.gatunek) do
+		for c,cultivar in pairs(gatunek.cultivars) do
 			if cultivar.fitness > PeakFitness then
 				PeakFitness = cultivar.fitness
-				maxs = s
 				maxg = g
+				maxc = c
 			end
 		end
 	end
 	
-	pool.currentGatunek = maxs
-	pool.currentCultivar = maxg
+	pool.currentGatunek = maxg
+	pool.currentCultivar = maxc
 	pool.PeakFitness = PeakFitness
 	forms.settext(PeakFitnessLabel, "Max Fitness: " .. math.floor(pool.PeakFitness))
 	initializeRun()
