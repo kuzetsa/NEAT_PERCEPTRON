@@ -206,7 +206,8 @@ function newPool()
 	pool.currentCultivar = 1
 	pool.EvaluatedFrames = 0
 	pool.RealtimeFitness = 0
-	pool.maxFitness = 0
+	pool.PeakFitness = 0
+	pool.RecentFitness = 0 -- false positive rejection
 	
 	return pool
 end
@@ -647,15 +648,16 @@ function sameGatunek(cultivar1, cultivar2)
 end
 
 function calculateAverageFitness(gatunek)
-	local cultivars_accumulator = 0
 	local number_tested = #gatunek.cultivars
+	local un-false_positive = math.max(3 - number_tested, 0)
+	local cultivars_accumulator = pool.RecentFitness * un-false_positive
 	
 	for particular_critter=1,number_tested do
 		local cultivar = gatunek.cultivars[particular_critter]
 		cultivars_accumulator = cultivars_accumulator + cultivar.fitness
 	end
 -- filter false positives (otherwise "nothing special" might out-breed "actually good")
-	gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 5))
+	gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 3))
 end
 
 function totalAverageFitness()
@@ -715,7 +717,7 @@ function removeStaleGatunek()
 		else
 			gatunek.staleness = gatunek.staleness + 1
 		end
-		if gatunek.staleness < StaleGatunek or gatunek.topFitness >= pool.maxFitness then
+		if gatunek.staleness < StaleGatunek or gatunek.topFitness >= pool.PeakFitness then
 			table.insert(survived, gatunek)
 		end
 	end
@@ -732,11 +734,11 @@ function removeWeakGatunek()
 		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
-	local global_fitness = totalAverageFitness() / #pool.gatunek
+	pool.RecentFitness = totalAverageFitness() / #pool.gatunek
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
 		breeding_pop_gain = 42 / math.exp(0.27 * current_pass / GenerationGain)
-		survive_critter = math.max(breeding_pop_gain, 1) * gatunek.averageFitness / global_fitness
+		survive_critter = math.max(breeding_pop_gain, 1) * gatunek.averageFitness / pool.RecentFitness
 		if math.random() < survive_critter then
 			table.insert(survived, gatunek)
 			current_pass = current_pass + 1
@@ -785,12 +787,11 @@ function newGeneration()
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
 	local Target_gain = math.max((GenerationGain / (0.618 + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
-	local istota = totalAverageFitness()
+	pool.RecentFitness = totalAverageFitness() / #pool.gatunek
 	local children = {}
 
 	for s, gatunek in ipairs(pool.gatunek) do
-		global_fitness = istota / CurrentSwarm -- Just what's already been measured
-		innov = math.sqrt(gatunek.averageFitness / global_fitness) -- compare to global average
+		innov = math.sqrt(gatunek.averageFitness / pool.RecentFitness) -- compare to global average
 		threethreethree = math.exp(innov) / 3333 -- actually that's four threes
 		thirdroot = threethreethree ^ (1/3) -- third root from above step
 		thirdthird = 3333 ^ (1/3) -- third root of 3333
@@ -1056,7 +1057,7 @@ end
 function writeFile(filename)
         local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
-	file:write(pool.maxFitness .. "\n")
+	file:write(pool.PeakFitness .. "\n")
 	file:write(#pool.gatunek .. "\n")
         for n,gatunek in pairs(pool.gatunek) do
 		file:write(gatunek.topFitness .. "\n")
@@ -1097,8 +1098,8 @@ function loadFile(filename)
         local file = io.open(filename, "r")
 	pool = newPool()
 	pool.generation = file:read("*number")
-	pool.maxFitness = file:read("*number")
-	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
+	pool.PeakFitness = file:read("*number")
+	forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
         local numGatunek = file:read("*number")
         for s=1,numGatunek do
 		local gatunek = newGatunek()
@@ -1145,12 +1146,12 @@ function loadPool()
 end
 
 function playTop()
-	local maxfitness = 0
+	local PeakFitness = 0
 	local maxs, maxg
 	for s,gatunek in pairs(pool.gatunek) do
 		for g,cultivar in pairs(gatunek.cultivars) do
-			if cultivar.fitness > maxfitness then
-				maxfitness = cultivar.fitness
+			if cultivar.fitness > PeakFitness then
+				PeakFitness = cultivar.fitness
 				maxs = s
 				maxg = g
 			end
@@ -1159,8 +1160,8 @@ function playTop()
 	
 	pool.currentGatunek = maxs
 	pool.currentCultivar = maxg
-	pool.maxFitness = maxfitness
-	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
+	pool.PeakFitness = PeakFitness
+	forms.settext(PeakFitnessLabel, "Max Fitness: " .. math.floor(pool.PeakFitness))
 	initializeRun()
 	return
 end
@@ -1174,7 +1175,7 @@ writeFile("temp.pool")
 event.onexit(onExit)
 
 form = forms.newform(200, 260, "Fitness")
-maxFitnessLabel = forms.label(form, "Max Fitness: " .. math.floor(pool.maxFitness), 5, 8)
+PeakFitnessLabel = forms.label(form, "Max Fitness: " .. math.floor(pool.PeakFitness), 5, 8)
 showNetwork = forms.checkbox(form, "Show Map", 5, 30)
 showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 restartButton = forms.button(form, "Restart", initializePool, 5, 77)
@@ -1238,9 +1239,9 @@ while true do
 		end
 		cultivar.fitness = fitness
 		
-		if fitness > pool.maxFitness then
-			pool.maxFitness = fitness
-			forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
+		if fitness > pool.PeakFitness then
+			pool.PeakFitness = fitness
+			forms.settext(PeakFitnessLabel, "Max Fitness: " .. math.floor(pool.PeakFitness))
 			writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 		end
 		
@@ -1256,7 +1257,7 @@ while true do
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "[" .. pool.generation .. "] Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
-		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.maxFitness), 0xFFFFFFFF, 11)
+		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
 	end
 		
 
