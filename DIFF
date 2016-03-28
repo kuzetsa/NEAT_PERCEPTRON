@@ -754,7 +754,9 @@ function removeWeakGatunek()
 	end
 
 	if next(survived) == nil then -- checking for empty table "the lua way" [tm]
-		table.insert(survived, basicCritter()) -- epic fail, so generate a random
+		local FreshGatunek = newGatunek() -- epic fail, replace with fresh n00b 
+		table.insert(FreshGatunek.cultivars, basicCritter())
+		table.insert(survived, FreshGatunek)
 	end
 
 	pool.gatunek = survived
