@@ -682,7 +682,7 @@ function cullGatunek()
 		end)
  -- never cull the last 4 (four)
 		local remaining_target = math.max(math.ceil((1.4 + #gatunek.cultivars)*0.658), 4)
-		while #gatunek.cultivars > 1 and gatunek.cultivars == 1 do
+		while #gatunek.cultivars > 1 and gatunek.cultivars[#gatunek.cultivars].fitness <= 1 do
 			table.remove(gatunek.cultivars) -- force removal of "extra dumb" genes
 		end
 		while #gatunek.cultivars > remaining_target do
