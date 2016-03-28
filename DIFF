@@ -43,7 +43,7 @@ StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish g
 RecentFitness = 0 -- false positive rejection
 
 DeltaDisjoint = 1.5
-DeltaWeights = 0.2
+DeltaWeights = 0.7
 DeltaThreshold = 5.81 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.76
