@@ -42,9 +42,9 @@ AntiGain = 3 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
-DeltaDisjoint = 2.0
-DeltaWeights = 0.4
-DeltaThreshold = 0.437 -- ONLY minor mutations
+DeltaDisjoint = 1.5
+DeltaWeights = 0.2
+DeltaThreshold = 5.81 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.76
 PerturbChance = 0.94
