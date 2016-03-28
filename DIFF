@@ -742,17 +742,19 @@ function removeWeakGatunek()
 
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for s = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[s]
+		local g = pool.gatunek[s]
 		breeding_pop_gain = 1.751 / math.exp(0.2136 * current_pass / GenerationGain)
-		survive_critter = math.min(breeding_pop_gain, math.sqrt(2)) * gatunek.averageFitness / RecentFitness
+		survive_critter = math.min(breeding_pop_gain, math.sqrt(2)) * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
-			table.insert(survived, gatunek)
-			current_pass = current_pass + 1
+			if g.averageFitness > 1 then
+				table.insert(survived, g)
+				current_pass = current_pass + 1
+			end
 		end
 	end
 
 	if next(survived) == nil then -- checking for empty table "the lua way" [tm]
-		table.insert(survived, next(pool.gatunek)) -- uh... "this one lives" (but they're all rubbish)
+		table.insert(survived, basicCritter()) -- epic fail, so generate a random
 	end
 
 	pool.gatunek = survived
