@@ -673,7 +673,7 @@ function totalAverageFitness()
 	return total
 end
 
-function cullGatunek()
+function cullCultivar()
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
 		
@@ -778,12 +778,12 @@ end
 
 function newGeneration()
 	removeStaleGatunek() -- old generations die off over time
-	cullGatunek() -- Make room for non-rubbish gatunek
+	cullCultivar() -- Make room for non-rubbish gatunek
 	for g, gatunek in ipairs(pool.gatunek) do
 		calculateAverageFitness(gatunek)
 	end
 	removeWeakGatunek() -- everbody dies
-	cullGatunek() -- more death... I guess O_O
+	cullCultivar() -- more death... I guess O_O
 	for g, gatunek in ipairs(pool.gatunek) do -- (that last cull brought a few averages UP)
 		local gatunek = pool.gatunek[g]
 		calculateAverageFitness(gatunek)
