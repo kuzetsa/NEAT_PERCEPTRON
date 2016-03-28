@@ -38,7 +38,7 @@ NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
 GenerationGain = 19 -- Per-generation soft-target / gain rate
-AntiGain = 5 -- Does more than the GenerationGain itself
+AntiGain = 3 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
@@ -46,15 +46,15 @@ DeltaDisjoint = 2.0
 DeltaWeights = 0.4
 DeltaThreshold = 0.437 -- ONLY minor mutations
 
-MutateConnectionsChance = 0.236
-PerturbChance = 0.72
-CrossoverChance = 0.91
-LinkMutationChance = 2.883
-NodeMutationChance = 1.869
+MutateConnectionsChance = 0.76
+PerturbChance = 0.94
+CrossoverChance = 0.38
+LinkMutationChance = 2.483
+NodeMutationChance = 2.169
 BiasMutationChance = 1.15
-StepSize = 0.1
+StepSize = 0.47
 EnableMutationChance = Inputs * 0.034 -- Try to re-enable 3.4% of dormant genes
-DisableMutationChance = Inputs * 0.0236 -- Try to disable 2.36% of active genes
+DisableMutationChance = Inputs * 0.052 -- Try to disable 2.36% of active genes
 StatusRegister = 0x42 -- not actually 42 in base 10 ... whatever
 
 TimeoutConstant = 97
@@ -743,7 +743,7 @@ function removeWeakGatunek()
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for s = 1,#pool.gatunek do
 		local gatunek = pool.gatunek[s]
-		breeding_pop_gain = 5 / math.exp(0.16 * current_pass / GenerationGain)
+		breeding_pop_gain = 1.751 / math.exp(0.2136 * current_pass / GenerationGain)
 		survive_critter = math.min(breeding_pop_gain, math.sqrt(2)) * gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			table.insert(survived, gatunek)
@@ -791,17 +791,16 @@ function newGeneration()
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
-	local Target_gain = math.max((GenerationGain / (0.618 + Gain_Rate)) - AntiGain, 0)
+	local Target_gain = math.max((GenerationGain / (3 + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	local children = {}
 
 	for g, gatunek in ipairs(pool.gatunek) do
 		innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
-		threethreethree = math.exp(innov) / 3333 -- actually that's four threes
-		thirdroot = threethreethree ^ (1/3) -- third root from above step
-		thirdthird = 3333 ^ (1/3) -- third root of 3333
-		breed = math.floor(math.sqrt(3333 * thirdroot) - thirdthird) -- three?
+		halfexp = math.exp(innov) / 2
+		thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
+		breed = math.floor(math.max(math.sqrt(55555 * thirdroot), 240) - 240)
 		if breed > 0 then -- "breeding tickets" for bad VS good genes
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
