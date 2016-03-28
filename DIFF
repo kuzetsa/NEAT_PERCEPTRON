@@ -1236,7 +1236,7 @@ while true do
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 222 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.45)
+	pool.RealtimeFitness = 222 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.8)
 
 	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
