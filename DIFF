@@ -42,8 +42,8 @@ AntiGain = 3 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
-DeltaDisjoint = 2.9 -- Newer or older genes (different neural network topology)
-DeltaWeights = 3.2 -- Different signal strength between various neurons.
+DeltaDisjoint = 3.6 -- Newer or older genes (different neural network topology)
+DeltaWeights = 1.1 -- Different signal strength between various neurons.
 DeltaThreshold = 1.7 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
