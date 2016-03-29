@@ -42,19 +42,19 @@ AntiGain = 3 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
-DeltaDisjoint = 1.5 -- New genes (neurons, basically)
-DeltaWeights = 3.1 -- Changes in the signal from various neurons.
-DeltaThreshold = 5.81 -- Mutations WILL happen. Embrace change.
+DeltaDisjoint = 1.3 -- New genes (neurons, basically)
+DeltaWeights = 3.2 -- Changes in the signal from various neurons.
+DeltaThreshold = 4.32 -- Mutations WILL happen. Embrace change.
 
-MutateConnectionsChance = 0.76
+MutateConnectionsChance = 0.84
 PerturbChance = 0.94
-CrossoverChance = 0.38
+CrossoverChance = 0.58
 LinkMutationChance = 2.483
 NodeMutationChance = 2.169
 BiasMutationChance = 1.15
 StepSize = 0.47
-EnableMutationChance = Inputs * 0.034 -- Try to re-enable 3.4% of dormant genes
-DisableMutationChance = Inputs * 0.052 -- Try to disable 2.36% of active genes
+EnableMutationChance = Inputs * 0.061 -- Try to re-enable 3.4% of dormant genes
+DisableMutationChance = Inputs * 0.084 -- Try to disable 2.36% of active genes
 StatusRegister = 0x42 -- not actually 42 in base 10 ... whatever
 
 TimeoutConstant = 97
@@ -839,10 +839,8 @@ end
 function initializePool()
 	pool = newPool()
 
-	while #pool.gatunek < GenerationGain do -- Start out with "this many" [tm]
-		basic = basicCritter()
-		addToGatunek(basic)
-	end
+	basic = basicCritter() -- start with a single critter O_O
+	addToGatunek(basic)
 	CurrentSwarm = #pool.gatunek -- be sure to record the size
 	initializeRun()
 end
