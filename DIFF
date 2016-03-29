@@ -42,8 +42,8 @@ AntiGain = 3 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
-DeltaDisjoint = 1.5
-DeltaWeights = 0.7
+DeltaDisjoint = 1.5 -- New genes (neurons, basically)
+DeltaWeights = 3.1 -- Changes in the signal from various neurons.
 DeltaThreshold = 5.81 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.76
@@ -681,7 +681,7 @@ function cullCultivar()
 			return (a.fitness > b.fitness)
 		end)
  -- never cull the last 4 (four)
-		local remaining_target = math.max(math.ceil((1.4 + #gatunek.cultivars)*0.658), 4)
+		local remaining_target = math.max(math.ceil(math.sqrt(3 * #gatunek.cultivars)*1.3), 7)
 		while #gatunek.cultivars > 1 and gatunek.cultivars[#gatunek.cultivars].fitness <= 1 do
 			table.remove(gatunek.cultivars) -- force removal of "extra dumb" genes
 		end
