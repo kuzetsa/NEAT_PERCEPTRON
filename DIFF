@@ -42,8 +42,8 @@ AntiGain = 3 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
-DeltaDisjoint = 1.3 -- New genes (neurons, basically)
-DeltaWeights = 3.2 -- Changes in the signal from various neurons.
+DeltaDisjoint = 1.3 -- Newer or older genes (different neural network topology)
+DeltaWeights = 3.2 -- Different signal strength between various neurons.
 DeltaThreshold = 4.32 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
@@ -51,7 +51,7 @@ PerturbChance = 0.94
 CrossoverChance = 0.58
 LinkMutationChance = 2.483
 NodeMutationChance = 2.169
-BiasMutationChance = 1.15
+BiasMutationChance = 0.75
 StepSize = 0.47
 EnableMutationChance = Inputs * 0.061 -- Try to re-enable 3.4% of dormant genes
 DisableMutationChance = Inputs * 0.084 -- Try to disable 2.36% of active genes
@@ -159,33 +159,20 @@ function getInputs()
 
 	inputs[#inputs+1] = 0 -- allocation (on the ground?)
 	examine = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
-	if examine == 1 then -- ignores touching sides (see below)
-		inputs[#inputs] = -1 -- Zero means NOT on the ground
+	if examine ~= 1 then -- ignores touching sides (see below)
+		inputs[#inputs] = -1 -- any other value besides "1", assume jumping
 	else
-		inputs[#inputs] = 1 -- any other value, assume jumping
+		inputs[#inputs] = 1 -- we can jump, etc. so generate "on the ground" signal
 	end
 
 	inputs[#inputs+1] = 0 -- allocation (running into a wall?)
 	examine = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
-	if examine == 5 then -- S is for "due to scrolling"
-		inputs[#inputs] = 1 -- Solid block to the right, AND solid ground (can't go down)
+	if examine ~= 5 then
+		inputs[#inputs] = 1 -- "normal" signal = blocked (no obstacle to the right)
 	else
-		inputs[#inputs] = -1
+		inputs[#inputs] = -1 -- Solid block to the right, AND solid ground (can't go down)
 	end
 
-	-- Simplified powerups table O_O
-	inputs[#inputs+1] = 0 -- allocation (tall)
-	examine = memory.readbyte(0x19)
-	-- some of these are mutually exclusive...
-	if examine == 0 then -- tiny flag is #0
-		inputs[#inputs] = -1 -- mario is NOT tall (blanked)
-	elseif examine == 1 then -- regular "big" flag is #1
-		inputs[#inputs] = 1 -- tall (mushroom variant)
-	elseif examine == 2 then -- cape flag is #2
-		inputs[#inputs] = 1 -- tall (cape variant)
-	elseif examine == 3 then -- fire flag is #3
-		inputs[#inputs] = 1 -- tall (cape variant)
-	end
 	return inputs
 end
 
