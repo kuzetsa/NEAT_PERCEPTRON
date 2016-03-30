@@ -94,7 +94,6 @@ function getSprites()
 				sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
 			end
 		end
-
 		return sprites
 	end
 end
@@ -110,7 +109,6 @@ function getExtendedSprites()
 				extended[#extended+1] = {["x"]=spritex, ["y"]=spritey}
 			end
 		end
-
 		return extended
 	end
 end
@@ -652,8 +650,8 @@ end
 
 function totalAverageFitness()
 	local total = 0
-	for s = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[s]
+	for g = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[g]
 		total = total + gatunek.averageFitness
 	end
 
@@ -661,13 +659,13 @@ function totalAverageFitness()
 end
 
 function cullCultivar()
-	for s = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[s]
+	for g = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[g]
 
 		table.sort(gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
- -- never cull the last 4 (four)
+ -- never cull the last 7 (seven)
 		local remaining_target = math.max(math.ceil(math.sqrt(3 * #gatunek.cultivars)*1.3), 7)
 		while #gatunek.cultivars > 1 and gatunek.cultivars[#gatunek.cultivars].fitness <= 1 do
 			table.remove(gatunek.cultivars) -- force removal of "extra dumb" genes
@@ -699,8 +697,8 @@ end
 function removeStaleGatunek()
 	local survived = {}
 
-	for s = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[s]
+	for g = 1,#pool.gatunek do
+		local gatunek = pool.gatunek[g]
 		table.sort(gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
@@ -728,8 +726,8 @@ function removeWeakGatunek()
 	end)
 
 	RecentFitness = totalAverageFitness() / #pool.gatunek
-	for s = 1,#pool.gatunek do
-		local g = pool.gatunek[s]
+	for g = 1,#pool.gatunek do
+		local g = pool.gatunek[g]
 		breeding_pop_gain = 1.751 / math.exp(0.2136 * current_pass / GenerationGain)
 		survive_critter = math.min(breeding_pop_gain, math.sqrt(2)) * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
@@ -752,8 +750,8 @@ end
 
 function addToGatunek(child)
 	local foundGatunek = false
-	for s=1,#pool.gatunek do
-		local gatunek = pool.gatunek[s]
+	for g=1,#pool.gatunek do
+		local gatunek = pool.gatunek[g]
 		if not foundGatunek and sameGatunek(child, gatunek.cultivars[1]) then
 			table.insert(gatunek.cultivars, child)
 			foundGatunek = true
@@ -1049,11 +1047,11 @@ function displayCritter(cultivar)
 end
 
 function writeFile(filename)
-        local file = io.open(filename, "w")
+		local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.PeakFitness .. "\n")
 	file:write(#pool.gatunek .. "\n")
-        for n,gatunek in pairs(pool.gatunek) do
+		for n,gatunek in pairs(pool.gatunek) do
 		file:write(gatunek.topFitness .. "\n")
 		file:write(gatunek.staleness .. "\n")
 		file:write(#gatunek.cultivars .. "\n")
@@ -1079,8 +1077,8 @@ function writeFile(filename)
 				end
 			end
 		end
-        end
-        file:close()
+		end
+		file:close()
 end
 
 function savePool()
@@ -1089,19 +1087,19 @@ function savePool()
 end
 
 function loadFile(filename)
-        local file = io.open(filename, "r")
+	local file = io.open(filename, "r")
 	pool = newPool()
 	pool.generation = file:read("*number")
 	pool.PeakFitness = file:read("*number")
 	forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
-        local numGatunek = file:read("*number")
-        for s=1,numGatunek do
+	local numGatunek = file:read("*number")
+	for loading_index_gatunek=1,numGatunek do
 		local gatunek = newGatunek()
 		table.insert(pool.gatunek, gatunek)
 		gatunek.topFitness = file:read("*number")
 		gatunek.staleness = file:read("*number")
 		local numCritters = file:read("*number")
-		for g=1,numCritters do
+		for loading_index_cultivar=1,numCritters do
 			local cultivar = newCritter()
 			table.insert(gatunek.cultivars, cultivar)
 			cultivar.fitness = file:read("*number")
@@ -1112,7 +1110,7 @@ function loadFile(filename)
 				line = file:read("*line")
 			end
 			local numGenes = file:read("*number")
-			for n=1,numGenes do
+			for loading_index_gene=1,numGenes do
 				local gene = newGene()
 				table.insert(cultivar.genes, gene)
 				local enabled
@@ -1122,11 +1120,10 @@ function loadFile(filename)
 				else
 					gene.enabled = true
 				end
-
 			end
 		end
 	end
-        file:close()
+	file:close()
 
 	while fitnessAlreadyMeasured() do
 		nextCritter()
