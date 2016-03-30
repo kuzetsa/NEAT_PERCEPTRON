@@ -747,12 +747,22 @@ function removeWeakGatunek()
 	pool.gatunek = survived
 end
 
+function DetermineGatunek(n00b, test_gatunek) -- check more than index #1
+	local DeterminedGatunek = false
+	for c=1,#test_gatunek.cultivars do
+		local test_cultivar = test_gatunek.cultivars[c]
+		if sameGatunek(n00b, test_cultivar) then
+			DeterminedGatunek = true
+		end
+	end
+	return DeterminedGatunek
+end
 
 function addToGatunek(child)
-	local foundGatunek = false -- the new breedChild routine has a patch
-	for g=1,#pool.gatunek do -- romantic calculations are involved
-		local gatunek = pool.gatunek[g] -- FIX ME
-		if not foundGatunek and sameGatunek(child, gatunek.cultivars[1]) then -- FIX THIS
+	local foundGatunek = false
+	for g=1,#pool.gatunek do
+		local iter_gatunek = pool.gatunek[g]
+		if not foundGatunek and DetermineGatunek(child, iter_gatunek) then
 			table.insert(gatunek.cultivars, child)
 			foundGatunek = true
 		end
