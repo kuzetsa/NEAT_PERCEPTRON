@@ -749,10 +749,10 @@ end
 
 
 function addToGatunek(child)
-	local foundGatunek = false
-	for g=1,#pool.gatunek do
-		local gatunek = pool.gatunek[g]
-		if not foundGatunek and sameGatunek(child, gatunek.cultivars[1]) then
+	local foundGatunek = false -- the new breedChild routine has a patch
+	for g=1,#pool.gatunek do -- romantic calculations are involved
+		local gatunek = pool.gatunek[g] -- FIX ME
+		if not foundGatunek and sameGatunek(child, gatunek.cultivars[1]) then -- FIX THIS
 			table.insert(gatunek.cultivars, child)
 			foundGatunek = true
 		end
