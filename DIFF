@@ -1152,7 +1152,7 @@ function playTop()
 	pool.currentGatunek = maxg
 	pool.currentCultivar = maxc
 	pool.PeakFitness = PeakFitness
-	forms.settext(PeakFitnessLabel, "Max Fitness: " .. math.floor(pool.PeakFitness))
+	forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
 	initializeRun()
 	return
 end
@@ -1166,7 +1166,7 @@ writeFile("temp.pool")
 event.onexit(onExit)
 
 form = forms.newform(200, 260, "Fitness")
-PeakFitnessLabel = forms.label(form, "Max Fitness: " .. math.floor(pool.PeakFitness), 5, 8)
+PeakFitnessLabel = forms.label(form, "Peak Fitness: " .. math.floor(pool.PeakFitness), 5, 8)
 showNetwork = forms.checkbox(form, "Show Map", 5, 30)
 showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 restartButton = forms.button(form, "Restart", initializePool, 5, 77)
@@ -1232,7 +1232,7 @@ while true do
 
 		if fitness > pool.PeakFitness then
 			pool.PeakFitness = fitness
-			forms.settext(PeakFitnessLabel, "Max Fitness: " .. math.floor(pool.PeakFitness))
+			forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
 			writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 		end
 
@@ -1248,7 +1248,7 @@ while true do
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "[" .. pool.generation .. "] Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
-		gui.drawText(100, 12, "Max Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
+		gui.drawText(100, 12, "Peak Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
 	end
 
 
