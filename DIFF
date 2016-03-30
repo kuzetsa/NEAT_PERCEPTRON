@@ -762,16 +762,16 @@ function addToGatunek(child)
 	local foundGatunek = false
 	for g=1,#pool.gatunek do
 		local iter_gatunek = pool.gatunek[g]
-		if not foundGatunek and DetermineGatunek(child, iter_gatunek) then
-			table.insert(gatunek.cultivars, child)
+		if DetermineGatunek(child, iter_gatunek) then
+			table.insert(iter_gatunek.cultivars, child)
 			foundGatunek = true
 		end
 	end
 
 	if not foundGatunek then
-		local childGatunek = newGatunek()
-		table.insert(childGatunek.cultivars, child)
-		table.insert(pool.gatunek, childGatunek)
+		local CreatedGatunek = newGatunek()
+		table.insert(CreatedGatunek.cultivars, child)
+		table.insert(pool.gatunek, CreatedGatunek)
 	end
 end
 
@@ -886,7 +886,6 @@ end
 if pool == nil then
 	initializePool()
 end
-
 
 function nextCritter()
 	pool.currentCultivar = pool.currentCultivar + 1
@@ -1260,7 +1259,6 @@ while true do
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
 		gui.drawText(100, 12, "Peak Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
 	end
-
 
 	emu.frameadvance();
 end
