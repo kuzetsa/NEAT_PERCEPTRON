@@ -43,8 +43,8 @@ StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish g
 RecentFitness = 0 -- false positive rejection
 
 DeltaDisjoint = 4.3 -- Newer or older genes (different neural network topology)
-DeltaWeights = 0.55 -- Different signal strength between various neurons.
-DeltaThreshold = 2.4 -- Mutations WILL happen. Embrace change.
+DeltaWeights = 0.3 -- Different signal strength between various neurons.
+DeltaThreshold = 3.2 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
 PerturbChance = 0.94
