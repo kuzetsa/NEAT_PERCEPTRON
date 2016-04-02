@@ -44,7 +44,7 @@ RecentFitness = 0 -- false positive rejection
 
 DeltaDisjoint = 3.2688 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.0757 -- Different signal strength between various neurons.
-DeltaThreshold = 1.0652 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.5637 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
 PerturbChance = 0.94
