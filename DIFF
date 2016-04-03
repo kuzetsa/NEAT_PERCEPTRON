@@ -634,7 +634,7 @@ end
 
 function calculateAverageFitness(gatunek)
 	local number_tested = #gatunek.cultivars
-	local UnFalsePositive = math.max(7 - number_tested, 0)
+	local UnFalsePositive = math.max(2 - number_tested, 0)
 	local cultivars_accumulator = RecentFitness * UnFalsePositive
 	if number_tested == 1 and gatunek.cultivars[1].fitness <= 1 then
 		gatunek.averageFitness = 1 -- for sanity, allow fast cull
@@ -644,7 +644,7 @@ function calculateAverageFitness(gatunek)
 			cultivars_accumulator = cultivars_accumulator + cultivar.fitness
 		end
 		-- filter false positives (otherwise "nothing special" might out-breed "actually good")
-		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 7))
+		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 2))
 	end
 end
 
@@ -728,8 +728,8 @@ function removeWeakGatunek()
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
-		breeding_pop_gain = 1.0888 / math.exp(0.0888 * current_pass / GenerationGain)
-		survive_critter = math.min(breeding_pop_gain, 1.065) * g.averageFitness / RecentFitness
+		breeding_pop_gain = 0.2345 + (1.2345 / math.exp(0.2345 * current_pass / GenerationGain))
+		survive_critter = breeding_pop_gain * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if g.averageFitness > 1 then
 				table.insert(survived, g)
