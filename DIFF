@@ -44,13 +44,13 @@ RecentFitness = 0 -- false positive rejection
 
 DeltaDisjoint = 3.2688 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.0757 -- Different signal strength between various neurons.
-DeltaThreshold = 0.393428 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.33755 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
 PerturbChance = 0.94
 CrossoverChance = 0.58
 LinkMutationChance = 2.483
-NodeMutationChance = 2.169
+NodeMutationChance = 0.8126639
 BiasMutationChance = 0.75
 StepSize = 0.47
 EnableMutationChance = Inputs * 0.061 -- Try to re-enable 3.4% of dormant genes
@@ -728,7 +728,7 @@ function removeWeakGatunek()
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
-		breeding_pop_gain = 0.2345 + (1.2345 / math.exp(0.2345 * current_pass / GenerationGain))
+		breeding_pop_gain = 0.333 + (4.444 / math.exp(0.222 * current_pass / GenerationGain))
 		survive_critter = breeding_pop_gain * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if g.averageFitness > 1 then
