@@ -728,8 +728,8 @@ function removeWeakGatunek()
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
-		breeding_pop_gain = 1.751 / math.exp(0.2136 * current_pass / GenerationGain)
-		survive_critter = math.min(breeding_pop_gain, math.sqrt(2)) * g.averageFitness / RecentFitness
+		breeding_pop_gain = 1.0888 / math.exp(0.0888 * current_pass / GenerationGain)
+		survive_critter = math.min(breeding_pop_gain, 1.065) * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if g.averageFitness > 1 then
 				table.insert(survived, g)
