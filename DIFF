@@ -729,7 +729,7 @@ function removeWeakGatunek()
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
-		breeding_pop_gain = 0.333 + (4.444 / math.exp(0.222 * current_pass / GenerationGain))
+		breeding_pop_gain = (4 / math.exp(0.7 * current_pass / GenerationGain)) - 1.5895
 		survive_critter = breeding_pop_gain * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if g.averageFitness > 1 then
