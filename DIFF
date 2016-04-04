@@ -37,8 +37,9 @@ Nyoom = 0
 NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
-GenerationGain = 19 -- Per-generation soft-target / gain rate
-AntiGain = 3 -- Does more than the GenerationGain itself
+InfertilityScale = 4 -- Prevent sudden growth spike
+GenerationGain = 333 -- Related to how quickly the population grows
+AntiGain = 55 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 
@@ -790,7 +791,7 @@ function newGeneration()
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
-	local Target_gain = math.max((GenerationGain / (3 + Gain_Rate)) - AntiGain, 0)
+	local Target_gain = math.max((GenerationGain / (InfertilityScale + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	RecentFitness = totalAverageFitness() / #pool.gatunek
 	local children = {}
