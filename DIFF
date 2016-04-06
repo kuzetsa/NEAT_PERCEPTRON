@@ -40,9 +40,9 @@ CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 4 -- Prevent sudden growth spike
 GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 55 -- Does more than the GenerationGain itself
-StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+StaleGatunek = 10 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 246.485
+CutoffShift = 247.693
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
@@ -1263,9 +1263,9 @@ while true do
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "@" .. pool.generation .. " Peak: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
-		gui.drawText(154, 12, "Avg: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
-		gui.drawText(132, 24, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
 		gui.drawText(0, 24, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
+		gui.drawText(152, 12, "Avg: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
+		gui.drawText(130, 24, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
 	end
 
 	emu.frameadvance();
