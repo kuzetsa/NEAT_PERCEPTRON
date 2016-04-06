@@ -1263,9 +1263,9 @@ while true do
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "[" .. pool.generation .. "] Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
-		gui.drawText(100, 12, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
+		gui.drawText(128, 12, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
 		gui.drawText(0, 24, "Average: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
-		gui.drawText(100, 24, "Top Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
+		gui.drawText(128, 24, "Top Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
 
 	end
 
