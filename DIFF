@@ -802,16 +802,19 @@ function newGeneration()
 	local children = {}
 
 	for g, gatunek in ipairs(pool.gatunek) do
-		innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
-		halfexp = math.exp(innov) / 2
-		thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
-		breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
-		if breed > 0 then -- "breeding tickets" for bad VS good genes
-		gatunek.staleness = 0 -- stale implies BELOW average
-			for i=1,breed do -- Make babies, based on the score
-				if gatunek.averageFitness > 1 then -- for sanity, allow fast cull
+		if gatunek.averageFitness > 1 then -- for sanity, allow fast cull
+			innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
+			halfexp = math.exp(innov) / 2
+			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
+			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
+			if breed > 0 then -- "breeding tickets" for bad VS good genes
+				gatunek.staleness = 0 -- stale implies BELOW average
+				for i=1,breed do -- Make babies, based on the score
 					table.insert(children, gatunek)
 				end
+			elseif gatunek.averageFitness >= pool.PeakFitness then -- single ticket
+				gatunek.staleness = 0
+				table.insert(children, gatunek)
 			end
 		end
 	end
