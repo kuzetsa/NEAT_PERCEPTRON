@@ -800,7 +800,7 @@ function newGeneration()
 		innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
 		halfexp = math.exp(innov) / 2
 		thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
-		breed = math.floor(math.max(math.sqrt(55555 * thirdroot), 240) - 240)
+		breed = math.floor(math.max(math.sqrt(55555 * thirdroot), 242.424) - 242.424)
 		if breed > 0 then -- "breeding tickets" for bad VS good genes
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
