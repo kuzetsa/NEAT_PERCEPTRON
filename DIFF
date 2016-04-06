@@ -42,6 +42,9 @@ GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 55 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
+CutoffShift = 242.424
+CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
+FitnessCutoff = 1
 
 DeltaDisjoint = 3.2688 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.0757 -- Different signal strength between various neurons.
@@ -727,6 +730,7 @@ function removeWeakGatunek()
 	end)
 
 	RecentFitness = totalAverageFitness() / #pool.gatunek
+	FitnessCutoff = CutoffRate * RecentFitness
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
 		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.7596
@@ -794,13 +798,14 @@ function newGeneration()
 	local Target_gain = math.max((GenerationGain / (InfertilityScale + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	RecentFitness = totalAverageFitness() / #pool.gatunek
+	FitnessCutoff = CutoffRate * RecentFitness
 	local children = {}
 
 	for g, gatunek in ipairs(pool.gatunek) do
 		innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
 		halfexp = math.exp(innov) / 2
 		thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
-		breed = math.floor(math.max(math.sqrt(55555 * thirdroot), 242.424) - 242.424)
+		breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 		if breed > 0 then -- "breeding tickets" for bad VS good genes
 		gatunek.staleness = 0 -- stale implies BELOW average
 			for i=1,breed do -- Make babies, based on the score
@@ -1258,7 +1263,10 @@ while true do
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "[" .. pool.generation .. "] Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
-		gui.drawText(100, 12, "Peak Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
+		gui.drawText(100, 12, "Fitness Cutoff: " .. math.floor(FitnessCutoff), 0xFFFFFFFF, 11)
+		gui.drawText(0, 24, "AverageFitness: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
+		gui.drawText(100, 24, "Peak Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
+
 	end
 
 	emu.frameadvance();
