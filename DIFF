@@ -42,7 +42,7 @@ GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 55 -- Does more than the GenerationGain itself
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 242.424
+CutoffShift = 246.485
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
@@ -1261,12 +1261,10 @@ while true do
 	end
 
 	if forms.ischecked(showBanner) then
-		gui.drawText(0, 0, "[" .. pool.generation .. "] Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
-		gui.drawText(0, 12, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
-		gui.drawText(128, 12, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
-		gui.drawText(0, 24, "Average: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
-		gui.drawText(128, 24, "Top Fitness: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
-
+		gui.drawText(0, 0, "Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
+		gui.drawText(0, 12, "[" .. pool.generation .. "] Avg: " .. math.floor(RecentFitness) .. "Top (peak) " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
+		gui.drawText(0, 24, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
+		gui.drawText(110, 24, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
 	end
 
 	emu.frameadvance();
