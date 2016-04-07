@@ -40,9 +40,9 @@ CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 4 -- Prevent sudden growth spike
 GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 55 -- Does more than the GenerationGain itself
-StaleGatunek = 10 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+StaleGatunek = 80 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 247.693
+CutoffShift = 238.3831
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
@@ -1236,7 +1236,7 @@ while true do
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 222 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.8)
+	pool.RealtimeFitness = 777 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.8)
 
 	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
