@@ -42,7 +42,7 @@ GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 85 -- Does more than the GenerationGain itself
 StaleGatunek = 80 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 238.3831
+CutoffShift = 244.039287202
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
@@ -59,7 +59,9 @@ BiasMutationChance = 0.75
 StepSize = 0.47
 EnableMutationChance = Inputs * 0.061 -- Try to re-enable 3.4% of dormant genes
 DisableMutationChance = Inputs * 0.084 -- Try to disable 2.36% of active genes
-StatusRegister = 0x42 -- not actually 42 in base 10 ... whatever
+StatusRegisterPrimary = 0x42
+StatusRegisterSecondary = 0x42
+StatusRegisterComposite = 0x42
 
 TimeoutConstant = 125
 
@@ -641,7 +643,7 @@ function calculateAverageFitness(gatunek, firstpass)
 	if firstpass then
 		error_filter = 1
 	else
-		error_filter = 5
+		error_filter = 2
 	end
 	local number_tested = #gatunek.cultivars
 	local UnFalsePositive = math.max(error_filter - number_tested, 0)
@@ -1239,23 +1241,35 @@ while true do
 	getPositions()
 
 	-- This lets us know if mario is still alive and game is active :)
-	StatusRegister = memory.readbyte(0x100) + memory.readbyte(0x9D)
+	StatusRegisterPrimary = memory.readbyte(0x100) + memory.readbyte(0x9D)
+	StatusRegisterSecondary = memory.readbyte(0x13D9)
+	StatusRegisterComposite = StatusRegisterPrimary + StatusRegisterSecondary
 
 	if memory.read_s16_le(0x94) > rightmost then
 		rightmost = memory.read_s16_le(0x94) -- helps detect end of level
 		timeout = TimeoutConstant
 	end
-	if StatusRegister == 0x14 then -- mario's brain is active
+	
+	if StatusRegisterComposite == 0x14 then -- mario's brain is active
 		pool.EvaluatedFrames = pool.EvaluatedFrames + 1
-		NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
-	elseif StatusRegister ~= 0x14 and pool.EvaluatedFrames > 1 then
+		NyoomCumulator = NyoomCumulator + Nyoom
+	elseif StatusRegisterSecondary >= 3 then -- level has not ended yet
+		timeout = timeout - (50 * TimeoutConstant) -- rapid-ify timeout
+	elseif StatusRegisterSecondary > 0 and StatusRegisterPrimary == 0x14 then
+		timeout = TimeoutConstant
+	elseif StatusRegisterPrimary ~= 0x14 and pool.EvaluatedFrames > 1 then
 		if memory.readbyte(0x9D) == 0x30 then -- death animation
 			timeout = timeout - (50 * TimeoutConstant) -- rapid-ify timeout
-		elseif memory.readbyte(0x9D) ~= 0x2F then -- if NOT a powerup animation
+		elseif memory.readbyte(0x9D) == 0x0C then -- Level end
 			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
-			console.writeline("[0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. memory.readbyte(0x9D))
+		elseif memory.readbyte(0x9D) == 0x2F then -- powerup animation
+			timeout = TimeoutConstant
+		else
+			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
+			console.writeline("exception:  [0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. memory.readbyte(0x9D) .. "  -  [13D9]/" .. memory.readbyte(0x13D9))
 		end
 	end
+
 
 	timeout = timeout - 1
 
