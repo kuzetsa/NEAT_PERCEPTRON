@@ -37,9 +37,9 @@ Nyoom = 0
 NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
-InfertilityScale = 4 -- Prevent sudden growth spike
+InfertilityScale = 2 -- Prevent sudden growth spike
 GenerationGain = 333 -- Related to how quickly the population grows
-AntiGain = 55 -- Does more than the GenerationGain itself
+AntiGain = 85 -- Does more than the GenerationGain itself
 StaleGatunek = 80 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 CutoffShift = 238.3831
@@ -61,7 +61,7 @@ EnableMutationChance = Inputs * 0.061 -- Try to re-enable 3.4% of dormant genes
 DisableMutationChance = Inputs * 0.084 -- Try to disable 2.36% of active genes
 StatusRegister = 0x42 -- not actually 42 in base 10 ... whatever
 
-TimeoutConstant = 97
+TimeoutConstant = 125
 
 MagicOffset = 1000000
 
@@ -636,9 +636,15 @@ function sameGatunek(cultivar1, cultivar2)
 	return dd + dw < DeltaThreshold
 end
 
-function calculateAverageFitness(gatunek)
+function calculateAverageFitness(gatunek, firstpass)
+	local error_filter = 0
+	if firstpass then
+		error_filter = 1
+	else
+		error_filter = 5
+	end
 	local number_tested = #gatunek.cultivars
-	local UnFalsePositive = math.max(2 - number_tested, 0)
+	local UnFalsePositive = math.max(error_filter - number_tested, 0)
 	local cultivars_accumulator = RecentFitness * UnFalsePositive
 	if number_tested == 1 and gatunek.cultivars[1].fitness <= 1 then
 		gatunek.averageFitness = 1 -- for sanity, allow fast cull
@@ -648,7 +654,7 @@ function calculateAverageFitness(gatunek)
 			cultivars_accumulator = cultivars_accumulator + cultivar.fitness
 		end
 		-- filter false positives (otherwise "nothing special" might out-breed "actually good")
-		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, 2))
+		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, error_filter))
 	end
 end
 
@@ -729,7 +735,6 @@ function removeWeakGatunek()
 		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
-	RecentFitness = totalAverageFitness() / #pool.gatunek
 	FitnessCutoff = CutoffRate * RecentFitness
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
@@ -763,6 +768,24 @@ function DetermineGatunek(n00b, test_gatunek) -- check more than index #1
 	return DeterminedGatunek
 end
 
+function AverageRefresh()
+	for g, gatunek in ipairs(pool.gatunek) do
+		local gatunek = pool.gatunek[g]
+		calculateAverageFitness(gatunek, true)
+	end
+	RecentFitness = totalAverageFitness() / #pool.gatunek
+	for g, gatunek in ipairs(pool.gatunek) do
+		local gatunek = pool.gatunek[g]
+		calculateAverageFitness(gatunek, false)
+	end
+	RecentFitness = totalAverageFitness() / #pool.gatunek
+	for g, gatunek in ipairs(pool.gatunek) do
+		local gatunek = pool.gatunek[g]
+		calculateAverageFitness(gatunek, false)
+	end
+	RecentFitness = totalAverageFitness() / #pool.gatunek
+end
+
 function addToGatunek(child)
 	local foundGatunek = false
 	for g=1,#pool.gatunek do
@@ -783,21 +806,15 @@ end
 function newGeneration()
 	removeStaleGatunek() -- old generations die off over time
 	cullCultivar() -- Make room for non-rubbish gatunek
-	for g, gatunek in ipairs(pool.gatunek) do
-		calculateAverageFitness(gatunek)
-	end
+	AverageRefresh()
 	removeWeakGatunek() -- everbody dies
 	cullCultivar() -- more death... I guess O_O
-	for g, gatunek in ipairs(pool.gatunek) do -- (that last cull brought a few averages UP)
-		local gatunek = pool.gatunek[g]
-		calculateAverageFitness(gatunek)
-	end
+	AverageRefresh()
 	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
 	local Target_gain = math.max((GenerationGain / (InfertilityScale + Gain_Rate)) - AntiGain, 0)
 	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
-	RecentFitness = totalAverageFitness() / #pool.gatunek
 	FitnessCutoff = CutoffRate * RecentFitness
 	local children = {}
 
@@ -808,9 +825,14 @@ function newGeneration()
 			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 			if breed > 0 then -- "breeding tickets" for bad VS good genes
+				GeneRank = 1.618 * g / CurrentSwarm
 				gatunek.staleness = 0 -- stale implies BELOW average
 				for i=1,breed do -- Make babies, based on the score
-					table.insert(children, gatunek)
+					if i == 1 then
+						table.insert(children, gatunek)
+					elseif GeneRank < random() then
+						table.insert(children, gatunek)
+					end
 				end
 			elseif gatunek.averageFitness >= pool.PeakFitness then -- single ticket
 				gatunek.staleness = 0
@@ -1226,17 +1248,24 @@ while true do
 	if StatusRegister == 0x14 then -- mario's brain is active
 		pool.EvaluatedFrames = pool.EvaluatedFrames + 1
 		NyoomCumulator = NyoomCumulator + Nyoom -- Speed is very important :)
+	elseif StatusRegister ~= 0x14 and pool.EvaluatedFrames > 1 then
+		if memory.readbyte(0x9D) == 0x30 then -- death animation
+			timeout = timeout - (50 * TimeoutConstant) -- rapid-ify timeout
+		elseif memory.readbyte(0x9D) ~= 0x2F then -- if NOT a powerup animation
+			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
+			console.writeline("[0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. memory.readbyte(0x9D))
+		end
 	end
 
 	timeout = timeout - 1
 
-	local timeoutBonus = math.floor(pool.EvaluatedFrames / 10.472)
+	local timeoutBonus = math.floor(pool.EvaluatedFrames / 7.3)
 	if timeoutBonus < 1 then
 		timeoutBonus = 1 -- sanitized
 	end
 
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 777 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.8)
+	pool.RealtimeFitness = 250 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.2145)
 
 	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
