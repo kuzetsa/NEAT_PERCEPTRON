@@ -830,7 +830,7 @@ function newGeneration()
 				for i=1,breed do -- Make babies, based on the score
 					if i == 1 then
 						table.insert(children, gatunek)
-					elseif GeneRank < random() then
+					elseif GeneRank < math.random() then
 						table.insert(children, gatunek)
 					end
 				end
