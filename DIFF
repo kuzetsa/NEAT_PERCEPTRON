@@ -46,9 +46,9 @@ CutoffShift = 244.039287202
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
-DeltaDisjoint = 3.2688 -- Newer or older genes (different neural network topology)
-DeltaWeights = 0.0757 -- Different signal strength between various neurons.
-DeltaThreshold = 0.33755 -- Mutations WILL happen. Embrace change.
+DeltaDisjoint = 3.1896 -- Newer or older genes (different neural network topology)
+DeltaWeights = 0.255372 -- Different signal strength between various neurons.
+DeltaThreshold = 0.685058 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
 PerturbChance = 0.94
