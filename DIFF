@@ -638,16 +638,9 @@ function sameGatunek(cultivar1, cultivar2)
 	return dd + dw < DeltaThreshold
 end
 
-function calculateAverageFitness(gatunek, firstpass)
-	local error_filter = 0
-	if firstpass then
-		error_filter = 1
-	else
-		error_filter = 2
-	end
+function calculateAverageFitness(gatunek)
 	local number_tested = #gatunek.cultivars
-	local UnFalsePositive = math.max(error_filter - number_tested, 0)
-	local cultivars_accumulator = RecentFitness * UnFalsePositive
+	local cultivars_accumulator = 0
 	if number_tested == 1 and gatunek.cultivars[1].fitness <= 1 then
 		gatunek.averageFitness = 1 -- for sanity, allow fast cull
 	else
@@ -655,8 +648,7 @@ function calculateAverageFitness(gatunek, firstpass)
 			local cultivar = gatunek.cultivars[particular_critter]
 			cultivars_accumulator = cultivars_accumulator + cultivar.fitness
 		end
-		-- filter false positives (otherwise "nothing special" might out-breed "actually good")
-		gatunek.averageFitness = math.ceil(cultivars_accumulator / math.max(number_tested, error_filter))
+		gatunek.averageFitness = math.ceil(cultivars_accumulator / number_tested)
 	end
 end
 
@@ -688,16 +680,16 @@ function cullCultivar()
 	end
 end
 
-function breedChild(stud)
+function reproduce(BaseGatunek)
 	local child = {} -- The following abstract concepts are legit:
-	local genetic_material = stud.cultivars[math.random(1, #stud.cultivars)]
+	local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 	if CrossoverChance > math.random() then -- cloning is fast, but this is fun sometimes
 		local allgatunek = pool.gatunek -- ONLY THE LIVING are on this canidates list O_O
 		local anygatunek = allgatunek[math.random(1, #allgatunek)] -- reverse wild oat sowing
 		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
 		child = crossover(genetic_material, blind_date) -- romantic calculations are involved
 	else
-		attractive_cousin = stud.cultivars[math.random(1, #stud.cultivars)]
+		attractive_cousin = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		child = copyHotness(attractive_cousin) -- CLONE THE HOTNESS!!!
 	end
 
@@ -737,7 +729,6 @@ function removeWeakGatunek()
 		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
-	FitnessCutoff = CutoffRate * RecentFitness
 	for g = 1,#pool.gatunek do
 		local g = pool.gatunek[g]
 		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.7596
@@ -773,19 +764,10 @@ end
 function AverageRefresh()
 	for g, gatunek in ipairs(pool.gatunek) do
 		local gatunek = pool.gatunek[g]
-		calculateAverageFitness(gatunek, true)
+		calculateAverageFitness(gatunek)
 	end
 	RecentFitness = totalAverageFitness() / #pool.gatunek
-	for g, gatunek in ipairs(pool.gatunek) do
-		local gatunek = pool.gatunek[g]
-		calculateAverageFitness(gatunek, false)
-	end
-	RecentFitness = totalAverageFitness() / #pool.gatunek
-	for g, gatunek in ipairs(pool.gatunek) do
-		local gatunek = pool.gatunek[g]
-		calculateAverageFitness(gatunek, false)
-	end
-	RecentFitness = totalAverageFitness() / #pool.gatunek
+	FitnessCutoff = CutoffRate * RecentFitness
 end
 
 function addToGatunek(child)
@@ -806,18 +788,19 @@ function addToGatunek(child)
 end
 
 function newGeneration()
+
 	removeStaleGatunek() -- old generations die off over time
 	cullCultivar() -- Make room for non-rubbish gatunek
 	AverageRefresh()
 	removeWeakGatunek() -- everbody dies
 	cullCultivar() -- more death... I guess O_O
 	AverageRefresh()
-	CurrentSwarm = #pool.gatunek -- Is anyone still alive?
+	
+	local CurrentSwarm = #pool.gatunek -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
 	local Target_gain = math.max((GenerationGain / (InfertilityScale + Gain_Rate)) - AntiGain, 0)
-	SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
-	FitnessCutoff = CutoffRate * RecentFitness
+	local SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local children = {}
 
 	for g, gatunek in ipairs(pool.gatunek) do
@@ -826,13 +809,13 @@ function newGeneration()
 			halfexp = math.exp(innov) / 2
 			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
-			if breed > 0 then -- "breeding tickets" for bad VS good genes
-				GeneRank = 1.618 * g / CurrentSwarm
+			if breed > 0 then -- "breeding tickets"
+				GeneRank = 0.78384 - (g / CurrentSwarm) -- FIFO ranking
 				gatunek.staleness = 0 -- stale implies BELOW average
 				for i=1,breed do -- Make babies, based on the score
-					if i == 1 then
+					if i == 1 then -- first one is guaranteed
 						table.insert(children, gatunek)
-					elseif GeneRank < math.random() then
+					elseif GeneRank > math.random() then -- Award FIFO lottery "breeding tickets"
 						table.insert(children, gatunek)
 					end
 				end
@@ -842,6 +825,7 @@ function newGeneration()
 			end
 		end
 	end
+
 	if next(children) == nil then
 		console.writeline("Stale generation")
 		while #pool.gatunek <= SwarmLimit do -- generate 1 (one) critter even if we're at the limit
@@ -857,7 +841,7 @@ function newGeneration()
 				addToGatunek(basic) -- this one is totally random
 			end
 			local gatunek = pool.gatunek[math.random(1, #pool.gatunek)]
-			addToGatunek(breedChild(gatunek)) -- this one has good genes
+			addToGatunek(reproduce(gatunek)) -- this one has good genes
 		end
 	end
 
