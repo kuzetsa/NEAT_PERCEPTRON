@@ -40,9 +40,9 @@ CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 2 -- Prevent sudden growth spike
 GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 85 -- Does more than the GenerationGain itself
-StaleGatunek = 80 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+StaleGatunek = 8 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 244.039287202
+CutoffShift = 247.011986198
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
