@@ -1,29 +1,29 @@
--- MarI/O by SethBling
--- Feel free to use this code, but please do not redistribute it.
--- Intended for use with the BizHawk emulator and Super Mario World or Super Mario Bros. ROM.
--- For SMW, make sure you have a save state named "DP1.state" at the beginning of a level,
+-- NEAT PERCEPTRON: a genetic programming / neuro-evolution system...
+-- Intended for use with the BizHawk emulator and Super Mario World
+-- Make sure you have a save state named "DP1.state" at the beginning of a level,
 -- and put a copy in both the Lua folder and the root directory of BizHawk.
 
-if gameinfo.getromname() == "Super Mario World (USA)" then
-	Filename = "DP1.state"
-	ButtonNames = {
-		"A",
-		"B",
-		"X",
-		"Y",
-		"Up",
-		"Down",
-		"Left",
-		"Right",
-	}
-end
+Filename = "DP1.state" -- or change the filename on this line. Either way is fine :)
+
+-- BACKGROUND INFO:
+-- https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies
+-- The original NEAT algorithm is under a GPL license (FOSS / Libre)
+-- This fork is licensed LGPL version 3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+
+-- COPYRIGHT DISCLAIMER:
+-- THIS IS A HEAVILY MODIFIED version (fork) of MarI/O by SethBling
+-- Specifically, GUI and logging code, and save/load feature is credits to SethBling
+-- My license for this fork is LGPL3, but SethBling has some legal rights too...
+-- SethBling, please contact @kuzetsa on twitter I'll do a full rewrite if needed
+
+ButtonNames = { "A", "B", "X", "Y", "Up", "Down", "Left", "Right" }
 
 math.randomseed(os.time()) -- unix timestamp to initialize seed
 burn_a_bunch = os.time() + 2 -- try for 2 seconds
 if os.time() < burn_a_bunch then
 	lots_of_attempts = math.random(1, 1327217884)
-end
-math.randomseed(lots_of_attempts) -- 
+end -- 2 seconds worth of CPU time was just burnt to get an unpredictable seed
+math.randomseed(lots_of_attempts) -- better than simple os.time() method, probably?
 
 BoxRadius = 6
 InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
@@ -40,15 +40,15 @@ CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 2 -- Prevent sudden growth spike
 GenerationGain = 333 -- Related to how quickly the population grows
 AntiGain = 85 -- Does more than the GenerationGain itself
-StaleGatunek = 8 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+StaleGatunek = 11 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 247.011986198
+CutoffShift = 247.011986198 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
 DeltaDisjoint = 3.1896 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.255372 -- Different signal strength between various neurons.
-DeltaThreshold = 0.685058 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.8 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.84
 PerturbChance = 0.94
@@ -65,58 +65,47 @@ StatusRegisterComposite = 0x42
 
 TimeoutConstant = 125
 
-MagicOffset = 1000000
+MagicOffset = 217168845 -- contemporary (year 2016) hardware WILL NOT grow a neural net this large
 
 function getPositions()
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		marioX = memory.read_s16_le(0xD1)
-		marioY = memory.read_s16_le(0xD3)
-
-		local layer1x = memory.read_s16_le(0x1A);
-		local layer1y = memory.read_s16_le(0x1C);
-
-		screenX = marioX-layer1x
-		screenY = marioY-layer1y
-	end
+	local layer1x = memory.read_s16_le(0x1A);
+	local layer1y = memory.read_s16_le(0x1C);
+	marioX = memory.read_s16_le(0xD1)
+	marioY = memory.read_s16_le(0xD3)
+	screenX = marioX-layer1x
+	screenY = marioY-layer1y
 end
 
 function getTile(dx, dy)
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		x = math.floor((marioX+dx+8)/16)
-		y = math.floor((marioY+dy)/16)
-
-		return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
-	end
+	x = math.floor((marioX+dx+8)/16)
+	y = math.floor((marioY+dy)/16)
+	return memory.readbyte(0x1C800 + math.floor(x/0x10)*0x1B0 + y*0x10 + x%0x10)
 end
 
 function getSprites()
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		local sprites = {}
-		for slot=0,11 do
-			local status = memory.readbyte(0x14C8+slot)
-			if status ~= 0 then
-				spritex = memory.readbyte(0xE4+slot) + memory.readbyte(0x14E0+slot)*256
-				spritey = memory.readbyte(0xD8+slot) + memory.readbyte(0x14D4+slot)*256
-				sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
-			end
+	local sprites = {}
+	for slot=0,11 do
+		local status = memory.readbyte(0x14C8+slot)
+		if status ~= 0 then
+			spritex = memory.readbyte(0xE4+slot) + memory.readbyte(0x14E0+slot)*256
+			spritey = memory.readbyte(0xD8+slot) + memory.readbyte(0x14D4+slot)*256
+			sprites[#sprites+1] = {["x"]=spritex, ["y"]=spritey}
 		end
-		return sprites
 	end
+	return sprites
 end
 
 function getExtendedSprites()
-	if gameinfo.getromname() == "Super Mario World (USA)" then
-		local extended = {}
-		for slot=0,11 do
-			local number = memory.readbyte(0x170B+slot)
-			if number ~= 0 then
-				spritex = memory.readbyte(0x171F+slot) + memory.readbyte(0x1733+slot)*256
-				spritey = memory.readbyte(0x1715+slot) + memory.readbyte(0x1729+slot)*256
-				extended[#extended+1] = {["x"]=spritex, ["y"]=spritey}
-			end
+	local extended = {}
+	for slot=0,11 do
+		local number = memory.readbyte(0x170B+slot)
+		if number ~= 0 then
+			spritex = memory.readbyte(0x171F+slot) + memory.readbyte(0x1733+slot)*256
+			spritey = memory.readbyte(0x1715+slot) + memory.readbyte(0x1729+slot)*256
+			extended[#extended+1] = {["x"]=spritex, ["y"]=spritey}
 		end
-		return extended
 	end
+	return extended
 end
 
 function getInputs()
@@ -654,8 +643,7 @@ end
 
 function totalAverageFitness()
 	local total = 0
-	for g, gatunek in ipairs(pool.Gatunki) do
-		local iter_gatunek = pool.Gatunki[g]
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		total = total + iter_gatunek.averageFitness
 	end
 
@@ -663,9 +651,7 @@ function totalAverageFitness()
 end
 
 function cullCultivar()
-	for g, gatunek in ipairs(pool.Gatunki) do
-		local iter_gatunek = pool.Gatunki[g]
-
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		table.sort(iter_gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
@@ -701,8 +687,7 @@ end
 function removeStaleGatunki()
 	local survived = {}
 
-	for g, gatunek in ipairs(pool.Gatunki) do
-		local iter_gatunek = pool.Gatunki[g]
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		table.sort(iter_gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
@@ -722,20 +707,18 @@ end
 
 function removeWeakGatunki()
 	local survived = {}
-	local s = 0
 	local current_pass = 0
 
 	table.sort(pool.Gatunki, function (a,b)
 		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
-	for g, gatunek in ipairs(pool.Gatunki) do
-		local g = pool.Gatunki[g]
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.7596
-		survive_critter = breeding_pop_gain * g.averageFitness / RecentFitness
+		survive_critter = breeding_pop_gain * iter_gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
-			if g.averageFitness > 1 then
-				table.insert(survived, g)
+			if iter_gatunek.averageFitness > 1 then
+				table.insert(survived, iter_gatunek)
 				current_pass = current_pass + 1
 			end
 		end
@@ -762,8 +745,7 @@ function DetermineGatunek(n00b, test_gatunek) -- check more than index #1
 end
 
 function AverageRefresh()
-	for g, gatunek in ipairs(pool.Gatunki) do
-		local iter_gatunek = pool.Gatunki[g]
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		calculateAverageFitness(iter_gatunek)
 	end
 	RecentFitness = totalAverageFitness() / #pool.Gatunki
@@ -772,8 +754,7 @@ end
 
 function addToGatunki(child)
 	local foundGatunek = false
-	for g, gatunek in ipairs(pool.Gatunki) do
-		local iter_gatunek = pool.Gatunki[g]
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		if DetermineGatunek(child, iter_gatunek) then
 			local mutant_baby = {}
 			mutant_baby = copyHotness(child) -- is that kosher?
@@ -1076,7 +1057,7 @@ function displayCritter(cultivar)
 end
 
 function writeFile(filename)
-		local file = io.open(filename, "w")
+	local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.PeakFitness .. "\n")
 	file:write(#pool.Gatunki .. "\n")
