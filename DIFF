@@ -191,7 +191,7 @@ end
 
 function newPool()
 	local pool = {}
-	pool.gatunek = {}
+	pool.Gatunki = {}
 	pool.generation = 0
 	pool.innovation = Outputs
 	pool.currentGatunek = 1
@@ -204,13 +204,13 @@ function newPool()
 end
 
 function newGatunek()
-	local gatunek = {}
-	gatunek.topFitness = 0
-	gatunek.staleness = 0
-	gatunek.cultivars = {}
-	gatunek.averageFitness = 0
+	local fresh_gatunek = {}
+	fresh_gatunek.topFitness = 0
+	fresh_gatunek.staleness = 0
+	fresh_gatunek.cultivars = {}
+	fresh_gatunek.averageFitness = 0
 
-	return gatunek
+	return fresh_gatunek
 end
 
 function newCritter()
@@ -654,28 +654,28 @@ end
 
 function totalAverageFitness()
 	local total = 0
-	for g = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[g]
-		total = total + gatunek.averageFitness
+	for g, gatunek in ipairs(pool.Gatunki) do
+		local iter_gatunek = pool.Gatunki[g]
+		total = total + iter_gatunek.averageFitness
 	end
 
 	return total
 end
 
 function cullCultivar()
-	for g = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[g]
+	for g, gatunek in ipairs(pool.Gatunki) do
+		local iter_gatunek = pool.Gatunki[g]
 
-		table.sort(gatunek.cultivars, function (a,b)
+		table.sort(iter_gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
  -- never cull the last 7 (seven)
-		local remaining_target = math.max(math.ceil(math.sqrt(3 * #gatunek.cultivars)*1.3), 7)
-		while #gatunek.cultivars > 1 and gatunek.cultivars[#gatunek.cultivars].fitness <= 1 do
-			table.remove(gatunek.cultivars) -- force removal of "extra dumb" genes
+		local remaining_target = math.max(math.ceil(math.sqrt(3 * #iter_gatunek.cultivars)*1.3), 7)
+		while #iter_gatunek.cultivars > 1 and iter_gatunek.cultivars[#iter_gatunek.cultivars].fitness <= 1 do
+			table.remove(iter_gatunek.cultivars) -- force removal of "extra dumb" genes
 		end
-		while #gatunek.cultivars > remaining_target do
-			table.remove(gatunek.cultivars)
+		while #iter_gatunek.cultivars > remaining_target do
+			table.remove(iter_gatunek.cultivars)
 		end
 	end
 end
@@ -684,8 +684,8 @@ function reproduce(BaseGatunek)
 	local child = {} -- The following abstract concepts are legit:
 	local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 	if CrossoverChance > math.random() then -- cloning is fast, but this is fun sometimes
-		local allgatunek = pool.gatunek -- ONLY THE LIVING are on this canidates list O_O
-		local anygatunek = allgatunek[math.random(1, #allgatunek)] -- reverse wild oat sowing
+		local allGatunki = pool.Gatunki -- ONLY THE LIVING are on this canidates list O_O
+		local anygatunek = allGatunki[math.random(1, #allGatunki)] -- reverse wild oat sowing
 		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
 		child = crossover(genetic_material, blind_date) -- romantic calculations are involved
 	else
@@ -698,39 +698,39 @@ function reproduce(BaseGatunek)
 	return child -- this child is now an adult O_O
 end
 
-function removeStaleGatunek()
+function removeStaleGatunki()
 	local survived = {}
 
-	for g = 1,#pool.gatunek do
-		local gatunek = pool.gatunek[g]
-		table.sort(gatunek.cultivars, function (a,b)
+	for g, gatunek in ipairs(pool.Gatunki) do
+		local iter_gatunek = pool.Gatunki[g]
+		table.sort(iter_gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
-		if gatunek.cultivars[1].fitness > gatunek.topFitness then
-			gatunek.topFitness = gatunek.cultivars[1].fitness
-			gatunek.staleness = 0
+		if iter_gatunek.cultivars[1].fitness > iter_gatunek.topFitness then
+			iter_gatunek.topFitness = iter_gatunek.cultivars[1].fitness
+			iter_gatunek.staleness = 0
 		else
-			gatunek.staleness = gatunek.staleness + 1
+			iter_gatunek.staleness = iter_gatunek.staleness + 1
 		end
-		if gatunek.staleness < StaleGatunek or gatunek.topFitness >= pool.PeakFitness then
-			table.insert(survived, gatunek)
+		if iter_gatunek.staleness < StaleGatunek or iter_gatunek.topFitness >= pool.PeakFitness then
+			table.insert(survived, iter_gatunek)
 		end
 	end
 
-	pool.gatunek = survived
+	pool.Gatunki = survived
 end
 
-function removeWeakGatunek()
+function removeWeakGatunki()
 	local survived = {}
 	local s = 0
 	local current_pass = 0
 
-	table.sort(pool.gatunek, function (a,b)
+	table.sort(pool.Gatunki, function (a,b)
 		return (a.averageFitness > b.averageFitness) -- high fitness first
 	end)
 
-	for g = 1,#pool.gatunek do
-		local g = pool.gatunek[g]
+	for g, gatunek in ipairs(pool.Gatunki) do
+		local g = pool.Gatunki[g]
 		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.7596
 		survive_critter = breeding_pop_gain * g.averageFitness / RecentFitness
 		if survive_critter > math.random() then
@@ -747,7 +747,7 @@ function removeWeakGatunek()
 		table.insert(survived, FreshGatunek)
 	end
 
-	pool.gatunek = survived
+	pool.Gatunki = survived
 end
 
 function DetermineGatunek(n00b, test_gatunek) -- check more than index #1
@@ -762,20 +762,23 @@ function DetermineGatunek(n00b, test_gatunek) -- check more than index #1
 end
 
 function AverageRefresh()
-	for g, gatunek in ipairs(pool.gatunek) do
-		local gatunek = pool.gatunek[g]
-		calculateAverageFitness(gatunek)
+	for g, gatunek in ipairs(pool.Gatunki) do
+		local iter_gatunek = pool.Gatunki[g]
+		calculateAverageFitness(iter_gatunek)
 	end
-	RecentFitness = totalAverageFitness() / #pool.gatunek
+	RecentFitness = totalAverageFitness() / #pool.Gatunki
 	FitnessCutoff = CutoffRate * RecentFitness
 end
 
-function addToGatunek(child)
+function addToGatunki(child)
 	local foundGatunek = false
-	for g=1,#pool.gatunek do
-		local iter_gatunek = pool.gatunek[g]
+	for g, gatunek in ipairs(pool.Gatunki) do
+		local iter_gatunek = pool.Gatunki[g]
 		if DetermineGatunek(child, iter_gatunek) then
-			table.insert(iter_gatunek.cultivars, child)
+			local mutant_baby = {}
+			mutant_baby = copyHotness(child) -- is that kosher?
+			mutate(mutant_baby)
+			table.insert(iter_gatunek.cultivars, mutant_baby)
 			foundGatunek = true
 		end
 	end
@@ -783,27 +786,27 @@ function addToGatunek(child)
 	if not foundGatunek then
 		local CreatedGatunek = newGatunek()
 		table.insert(CreatedGatunek.cultivars, child)
-		table.insert(pool.gatunek, CreatedGatunek)
+		table.insert(pool.Gatunki, CreatedGatunek)
 	end
 end
 
 function newGeneration()
 
-	removeStaleGatunek() -- old generations die off over time
-	cullCultivar() -- Make room for non-rubbish gatunek
+	removeStaleGatunki() -- old generations die off over time
+	cullCultivar() -- Make room for non-rubbish Gatunki
 	AverageRefresh()
-	removeWeakGatunek() -- everbody dies
+	removeWeakGatunki() -- everbody dies
 	cullCultivar() -- more death... I guess O_O
 	AverageRefresh()
 	
-	local CurrentSwarm = #pool.gatunek -- Is anyone still alive?
+	local CurrentSwarm = #pool.Gatunki -- Is anyone still alive?
 	local Population_Control = CurrentSwarm + GenerationGain
 	local Gain_Rate = math.log(Population_Control / GenerationGain) -- natural log
 	local Target_gain = math.max((GenerationGain / (InfertilityScale + Gain_Rate)) - AntiGain, 0)
 	local SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local children = {}
 
-	for g, gatunek in ipairs(pool.gatunek) do
+	for g, gatunek in ipairs(pool.Gatunki) do
 		if gatunek.averageFitness > 1 then -- for sanity, allow fast cull
 			innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
 			halfexp = math.exp(innov) / 2
@@ -828,20 +831,20 @@ function newGeneration()
 
 	if next(children) == nil then
 		console.writeline("Stale generation")
-		while #pool.gatunek <= SwarmLimit do -- generate 1 (one) critter even if we're at the limit
+		while #pool.Gatunki <= SwarmLimit do -- generate 1 (one) critter even if we're at the limit
 			basic = basicCritter()
-			addToGatunek(basic)
+			addToGatunki(basic)
 		end
 	else
 		pool.generation = pool.generation + 1 -- NEW GENERATION COMPLETE!!!
-		while #pool.gatunek <= SwarmLimit do
+		while #pool.Gatunki <= SwarmLimit do
 			random_critter_chance = 1 / math.max(pool.generation, 1) -- dividing by zero is forbidden
 			if random_critter_chance > math.random() then
 				basic = basicCritter()
-				addToGatunek(basic) -- this one is totally random
+				addToGatunki(basic) -- this one is totally random
 			end
-			local gatunek = pool.gatunek[math.random(1, #pool.gatunek)]
-			addToGatunek(reproduce(gatunek)) -- this one has good genes
+			local ticketed_gatunek = pool.Gatunki[math.random(1, #pool.Gatunki)]
+			addToGatunki(reproduce(ticketed_gatunek)) -- this one probably has good genes
 		end
 	end
 
@@ -852,8 +855,8 @@ function initializePool()
 	pool = newPool()
 
 	basic = basicCritter() -- start with a single critter O_O
-	addToGatunek(basic)
-	CurrentSwarm = #pool.gatunek -- be sure to record the size
+	addToGatunki(basic)
+	CurrentSwarm = #pool.Gatunki -- be sure to record the size
 	initializeRun()
 end
 
@@ -875,18 +878,18 @@ function initializeRun()
 	timeout = TimeoutConstant
 	clearJoypad()
 
-	local gatunek = pool.gatunek[pool.currentGatunek]
-	local cultivar = gatunek.cultivars[pool.currentCultivar]
+	local last_gatunek = pool.Gatunki[pool.currentGatunek]
+	local cultivar = last_gatunek.cultivars[pool.currentCultivar]
 	generateMind(cultivar)
 	evaluateCurrent()
 end
 
 function evaluateCurrent()
-	local gatunek = pool.gatunek[pool.currentGatunek]
-	local cultivar = gatunek.cultivars[pool.currentCultivar]
+	local eval_gatunek = pool.Gatunki[pool.currentGatunek]
+	local eval_cultivar = eval_gatunek.cultivars[pool.currentCultivar]
 
 	inputs = getInputs()
-	controller = evaluateThoughts(cultivar.brain, inputs)
+	controller = evaluateThoughts(eval_cultivar.brain, inputs)
 
 	if controller["P1 Left"] and controller["P1 Right"] then
 		controller["P1 Left"] = false
@@ -906,10 +909,10 @@ end
 
 function nextCritter()
 	pool.currentCultivar = pool.currentCultivar + 1
-	if pool.currentCultivar > #pool.gatunek[pool.currentGatunek].cultivars then
+	if pool.currentCultivar > #pool.Gatunki[pool.currentGatunek].cultivars then
 		pool.currentCultivar = 1
 		pool.currentGatunek = pool.currentGatunek+1
-		if pool.currentGatunek > #pool.gatunek then
+		if pool.currentGatunek > #pool.Gatunki then
 			newGeneration()
 			pool.currentGatunek = 1
 		end
@@ -917,10 +920,10 @@ function nextCritter()
 end
 
 function fitnessAlreadyMeasured()
-	local gatunek = pool.gatunek[pool.currentGatunek]
-	local cultivar = gatunek.cultivars[pool.currentCultivar]
+	local indexed_gatunek = pool.Gatunki[pool.currentGatunek]
+	local indexed_cultivar = indexed_gatunek.cultivars[pool.currentCultivar]
 
-	return cultivar.fitness ~= 0
+	return indexed_cultivar.fitness ~= 0
 end
 
 function displayCritter(cultivar)
@@ -1076,8 +1079,8 @@ function writeFile(filename)
 		local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.PeakFitness .. "\n")
-	file:write(#pool.gatunek .. "\n")
-		for n,gatunek in pairs(pool.gatunek) do
+	file:write(#pool.Gatunki .. "\n")
+		for n,gatunek in pairs(pool.Gatunki) do
 		file:write(gatunek.topFitness .. "\n")
 		file:write(gatunek.staleness .. "\n")
 		file:write(#gatunek.cultivars .. "\n")
@@ -1118,16 +1121,16 @@ function loadFile(filename)
 	pool.generation = file:read("*number")
 	pool.PeakFitness = file:read("*number")
 	forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
-	local numGatunek = file:read("*number")
-	for loading_index_gatunek=1,numGatunek do
-		local gatunek = newGatunek()
-		table.insert(pool.gatunek, gatunek)
-		gatunek.topFitness = file:read("*number")
-		gatunek.staleness = file:read("*number")
+	local numGatunki = file:read("*number")
+	for loading_index_gatunek=1,numGatunki do
+		local load_gatunek = newGatunek()
+		table.insert(pool.Gatunki, load_gatunek)
+		load_gatunek.topFitness = file:read("*number")
+		load_gatunek.staleness = file:read("*number")
 		local numCritters = file:read("*number")
 		for loading_index_cultivar=1,numCritters do
 			local cultivar = newCritter()
-			table.insert(gatunek.cultivars, cultivar)
+			table.insert(load_gatunek.cultivars, cultivar)
 			cultivar.fitness = file:read("*number")
 			cultivar.maxneuron = file:read("*number")
 			local line = file:read("*line")
@@ -1165,7 +1168,7 @@ end
 function playTop()
 	local PeakFitness = 0
 	local maxg, maxc
-	for g,gatunek in pairs(pool.gatunek) do
+	for g,gatunek in pairs(pool.Gatunki) do
 		for c,cultivar in pairs(gatunek.cultivars) do
 			if cultivar.fitness > PeakFitness then
 				PeakFitness = cultivar.fitness
@@ -1211,11 +1214,11 @@ while true do
 		gui.drawBox(0, 0, 300, 38, backgroundColor, backgroundColor)
 	end
 
-	local gatunek = pool.gatunek[pool.currentGatunek]
-	local cultivar = gatunek.cultivars[pool.currentCultivar]
+	local active_gatunek = pool.Gatunki[pool.currentGatunek]
+	local active_cultivar = active_gatunek.cultivars[pool.currentCultivar]
 
 	if forms.ischecked(showNetwork) then
-		displayCritter(cultivar)
+		displayCritter(active_cultivar)
 	end
 
 	evaluateCurrent() -- EVERY FRAME!!!
@@ -1273,7 +1276,7 @@ while true do
 		if fitness < 1 then -- zero is a "magic number" to indicate untested status
 			fitness = 1
 		end
-		cultivar.fitness = fitness
+		active_cultivar.fitness = fitness
 
 		if fitness > pool.PeakFitness then
 			pool.PeakFitness = fitness
