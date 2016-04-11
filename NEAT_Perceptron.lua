@@ -655,8 +655,8 @@ function cullCultivar()
 		table.sort(iter_gatunek.cultivars, function (a,b)
 			return (a.fitness > b.fitness)
 		end)
- -- never cull the last 7 (seven)
-		local remaining_target = math.max(math.ceil(math.sqrt(3 * #iter_gatunek.cultivars)*1.3), 7)
+ -- never cull the last 2 (two)
+		local remaining_target = math.max(math.ceil(math.sqrt(2 * #iter_gatunek.cultivars)*1.6)-2, 2)
 		while #iter_gatunek.cultivars > 1 and iter_gatunek.cultivars[#iter_gatunek.cultivars].fitness <= 1 do
 			table.remove(iter_gatunek.cultivars) -- force removal of "extra dumb" genes
 		end
