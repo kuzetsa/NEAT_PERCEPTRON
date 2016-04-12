@@ -48,17 +48,18 @@ FitnessCutoff = 1
 
 DeltaDisjoint = 3.1896 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.255372 -- Different signal strength between various neurons.
-DeltaThreshold = 0.8 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.5 -- Mutations WILL happen. Embrace change.
 
-MutateConnectionsChance = 0.84
+MutateConnectionsChance = 0.11
 PerturbChance = 0.94
 CrossoverChance = 0.58
 LinkMutationChance = 2.483
 NodeMutationChance = 0.8126639
 BiasMutationChance = 0.75
 StepSize = 0.0611
-EnableMutationChance = Inputs * 0.061 -- Try to re-enable 3.4% of dormant genes
-DisableMutationChance = Inputs * 0.084 -- Try to disable 2.36% of active genes
+DisableMutationChance = Inputs * 0.026 -- Try to disable 2.6% of active genes
+EnableMutationChance = Inputs * 0.031 -- Try to re-enable 3.1% of dormant genes
+
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
 StatusRegisterComposite = 0x42
