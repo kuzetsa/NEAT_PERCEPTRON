@@ -37,10 +37,10 @@ Nyoom = 0
 NyoomCumulator = 0
 
 CurrentSwarm = 0 -- ACTUAL population size
-InfertilityScale = 2 -- Prevent sudden growth spike
-GenerationGain = 333 -- Related to how quickly the population grows
-AntiGain = 85 -- Does more than the GenerationGain itself
-StaleGatunek = 11 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+InfertilityScale = 1 -- Prevent sudden growth spike
+GenerationGain = 75 -- Related to how quickly the population grows
+AntiGain = 25 -- Does more than the GenerationGain itself
+StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 CutoffShift = 247.011986198 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
@@ -715,7 +715,7 @@ function removeWeakGatunki()
 	end)
 
 	for g, iter_gatunek in ipairs(pool.Gatunki) do
-		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.7596
+		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.761
 		survive_critter = breeding_pop_gain * iter_gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if iter_gatunek.averageFitness > 1 then
@@ -795,7 +795,7 @@ function newGeneration()
 			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 			if breed > 0 then -- "breeding tickets"
-				GeneRank = 0.78384 - (g / CurrentSwarm) -- FIFO ranking
+				GeneRank = 0.6 - (g / CurrentSwarm) -- FIFO ranking
 				gatunek.staleness = 0 -- stale implies BELOW average
 				for i=1,breed do -- Make babies, based on the score
 					if i == 1 then -- first one is guaranteed
