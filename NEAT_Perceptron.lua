@@ -795,7 +795,7 @@ function newGeneration()
 			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 			if breed > 0 then -- "breeding tickets"
-				GeneRank = 0.6 - (g / CurrentSwarm) -- FIFO ranking
+				GeneRank = 1.2 - (1.7 * g / CurrentSwarm) -- FIFO ranking
 				gatunek.staleness = 0 -- stale implies BELOW average
 				for i=1,breed do -- Make babies, based on the score
 					if i == 1 then -- first one is guaranteed
