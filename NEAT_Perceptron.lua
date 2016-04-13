@@ -572,13 +572,17 @@ function disjoint(genes1, genes2)
 	local i1 = {}
 	for i = 1,#genes1 do
 		local gene = genes1[i]
-		i1[gene.innovation] = true
+		if i1[gene.innovation].enabled then
+			i1[gene.innovation] = true
+		end
 	end
 
 	local i2 = {}
 	for i = 1,#genes2 do
 		local gene = genes2[i]
-		i2[gene.innovation] = true
+		if i2[gene.innovation].enabled then
+			i2[gene.innovation] = true
+		end
 	end
 
 	local disjointGenes = 0
