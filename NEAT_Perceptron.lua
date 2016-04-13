@@ -829,8 +829,8 @@ function newGeneration()
 				basic = basicCritter()
 				addToGatunki(basic) -- this one is totally random
 			end
-			local ticketed_iter_gatunek = pool.Gatunki[math.random(1, #pool.Gatunki)]
-			addToGatunki(reproduce(ticketed_iter_gatunek)) -- this one probably has good genes
+			local ticketed_gatunek = pool.Gatunki[math.random(1, #pool.Gatunki)]
+			addToGatunki(reproduce(ticketed_gatunek)) -- this one probably has good genes
 		end
 	end
 
