@@ -57,8 +57,8 @@ LinkMutationChance = 1.618
 NodeMutationChance = 0.618
 BiasMutationChance = 1.15
 StepSize = 0.0611
-DisableMutationChance = Inputs * 0.026 -- Try to disable 2.6% of active genes
-EnableMutationChance = Inputs * 0.031 -- Try to re-enable 3.1% of dormant genes
+DisableMutationChance = Inputs * 0.028 -- 2.8% chance to disable currently active gene
+EnableMutationChance = Inputs * 0.012 -- Try to [re]enable 1.2% of dormant (inactive) genes
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
