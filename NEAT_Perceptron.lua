@@ -42,13 +42,13 @@ GenerationGain = 75 -- Related to how quickly the population grows
 AntiGain = 25 -- Does more than the GenerationGain itself
 StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 247.011986198 -- be very careful modifying this value
+CutoffShift = 243 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
 DeltaDisjoint = 3.1896 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.255372 -- Different signal strength between various neurons.
-DeltaThreshold = 0.5 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.2236 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.11
 PerturbChance = 0.94
@@ -795,7 +795,7 @@ function newGeneration()
 			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 			if breed > 0 then -- "breeding tickets"
-				GeneRank = 1.2 - (1.7 * g / CurrentSwarm) -- FIFO ranking
+				GeneRank = 1.7 - (2.5 * g / CurrentSwarm) -- FIFO ranking
 				gatunek.staleness = 0 -- stale implies BELOW average
 				for i=1,breed do -- Make babies, based on the score
 					if i == 1 then -- first one is guaranteed
