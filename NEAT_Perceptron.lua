@@ -588,15 +588,19 @@ function disjoint(genes1, genes2)
 	local disjointGenes = 0
 	for i = 1,#genes1 do
 		local gene = genes1[i]
-		if not i2[gene.innovation] then
-			disjointGenes = disjointGenes+1
+		if gene.enabled then
+			if not i2[gene.innovation] then
+				disjointGenes = disjointGenes+1
+			end
 		end
 	end
 
 	for i = 1,#genes2 do
 		local gene = genes2[i]
-		if not i1[gene.innovation] then
-			disjointGenes = disjointGenes+1
+		if gene.enabled then
+			if not i1[gene.innovation] then
+				disjointGenes = disjointGenes+1
+			end
 		end
 	end
 
