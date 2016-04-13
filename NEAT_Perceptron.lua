@@ -52,7 +52,7 @@ DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.236
 PerturbChance = 0.94
-CrossoverChance = 0.87
+CrossoverChance = 0.37
 LinkMutationChance = 1.618
 NodeMutationChance = 0.618
 BiasMutationChance = 1.15
