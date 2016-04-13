@@ -46,16 +46,16 @@ CutoffShift = 243 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
-DeltaDisjoint = 3.1896 -- Newer or older genes (different neural network topology)
-DeltaWeights = 0.255372 -- Different signal strength between various neurons.
-DeltaThreshold = 0.2236 -- Mutations WILL happen. Embrace change.
+DeltaDisjoint = 3.2 -- Newer or older genes (different neural network topology)
+DeltaWeights = 0.28 -- Different signal strength between various neurons.
+DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
 
-MutateConnectionsChance = 0.11
+MutateConnectionsChance = 0.236
 PerturbChance = 0.94
-CrossoverChance = 0.18
-LinkMutationChance = 2.483
-NodeMutationChance = 0.8126639
-BiasMutationChance = 0.75
+CrossoverChance = 0.87
+LinkMutationChance = 1.618
+NodeMutationChance = 0.618
+BiasMutationChance = 1.15
 StepSize = 0.0611
 DisableMutationChance = Inputs * 0.026 -- Try to disable 2.6% of active genes
 EnableMutationChance = Inputs * 0.031 -- Try to re-enable 3.1% of dormant genes
@@ -507,10 +507,22 @@ function enableDisableMutate(cultivar, enable)
 
 	if #candidates == 0 then
 		return
+	elseif enable then
+		chance = cultivar.mutationRates["enable"]
+		for c, iter_candidate in ipairs(candidates) do
+			if chance > math.random() then
+				iter_candidate.enabled = not iter_candidate.enabled
+			end
+		end
+	else
+		chance = cultivar.mutationRates["disable"]
+		for c, iter_candidate in ipairs(candidates) do
+			if chance > math.random() then
+				iter_candidate.enabled = not iter_candidate.enabled
+			end
+		end
 	end
 
-	local gene = candidates[math.random(1,#candidates)]
-	gene.enabled = not gene.enabled
 end
 
 function mutate(cultivar)
@@ -550,21 +562,9 @@ function mutate(cultivar)
 		p = p - 1
 	end
 
-	p = cultivar.mutationRates["disable"] -- DIASBLE FIRST!!!
-	while p > 0 do
-		if p > math.random() then
-			enableDisableMutate(cultivar, false)
-		end
-		p = p - 1
-	end
+	enableDisableMutate(cultivar, false)  -- DISABLE FIRST!!!
+	enableDisableMutate(cultivar, true)
 
-	p = cultivar.mutationRates["enable"]
-	while p > 0 do
-		if p > math.random() then
-			enableDisableMutate(cultivar, true)
-		end
-		p = p - 1
-	end
 
 end
 
@@ -788,25 +788,25 @@ function newGeneration()
 	local SwarmLimit = math.ceil(CurrentSwarm + Target_gain) -- how many are allowed?
 	local children = {}
 
-	for g, gatunek in ipairs(pool.Gatunki) do
-		if gatunek.averageFitness > 1 then -- for sanity, allow fast cull
-			innov = math.sqrt(gatunek.averageFitness / RecentFitness) -- compare to global average
+	for g, iter_gatunek in ipairs(pool.Gatunki) do
+		if iter_gatunek.averageFitness > 1 then -- for sanity, allow fast cull
+			innov = math.sqrt(iter_gatunek.averageFitness / RecentFitness) -- compare to global average
 			halfexp = math.exp(innov) / 2
 			thirdroot = halfexp ^ (1/3) -- "this notation" cause lua only offers math.sqrt()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 			if breed > 0 then -- "breeding tickets"
 				GeneRank = 1.7 - (2.5 * g / CurrentSwarm) -- FIFO ranking
-				gatunek.staleness = 0 -- stale implies BELOW average
+				iter_gatunek.staleness = 0 -- stale implies BELOW average
 				for i=1,breed do -- Make babies, based on the score
 					if i == 1 then -- first one is guaranteed
-						table.insert(children, gatunek)
+						table.insert(children, iter_gatunek)
 					elseif GeneRank > math.random() then -- Award FIFO lottery "breeding tickets"
-						table.insert(children, gatunek)
+						table.insert(children, iter_gatunek)
 					end
 				end
-			elseif gatunek.averageFitness >= pool.PeakFitness then -- single ticket
-				gatunek.staleness = 0
-				table.insert(children, gatunek)
+			elseif iter_gatunek.averageFitness >= pool.PeakFitness then -- single ticket
+				iter_gatunek.staleness = 0
+				table.insert(children, iter_gatunek)
 			end
 		end
 	end
@@ -825,8 +825,8 @@ function newGeneration()
 				basic = basicCritter()
 				addToGatunki(basic) -- this one is totally random
 			end
-			local ticketed_gatunek = pool.Gatunki[math.random(1, #pool.Gatunki)]
-			addToGatunki(reproduce(ticketed_gatunek)) -- this one probably has good genes
+			local ticketed_iter_gatunek = pool.Gatunki[math.random(1, #pool.Gatunki)]
+			addToGatunki(reproduce(ticketed_iter_gatunek)) -- this one probably has good genes
 		end
 	end
 
