@@ -1286,10 +1286,10 @@ while true do
 
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
-		gui.drawText(0, 12, "@" .. pool.generation .. " Peak: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
-		gui.drawText(0, 24, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
-		gui.drawText(152, 12, "Avg: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
-		gui.drawText(130, 24, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
+		gui.drawText(0, 12, "@" .. pool.generation .. " Avg: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
+		gui.drawText(0, 24, "Cutoff: " .. math.ceil(FitnessCutoff), 0xFFFFFFFF, 11)
+		gui.drawText(145, 12, "Peak: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
+		gui.drawText(123, 24, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
 	end
 
 	emu.frameadvance();
