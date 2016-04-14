@@ -46,13 +46,13 @@ CutoffShift = 243 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 
-DeltaDisjoint = 3.2 -- Newer or older genes (different neural network topology)
+DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.28 -- Different signal strength between various neurons.
-DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.6 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.236
 PerturbChance = 0.94
-CrossoverChance = 0.37
+CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 LinkMutationChance = 1.618
 NodeMutationChance = 0.618
 BiasMutationChance = 1.15
@@ -676,14 +676,15 @@ function cullCultivar()
 end
 
 function reproduce(BaseGatunek)
-	local child = {} -- The following abstract concepts are legit:
+	local child = {}
 	local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
-	if CrossoverChance > math.random() then -- cloning is fast, but this is fun sometimes
-		local allGatunki = pool.Gatunki -- ONLY THE LIVING are on this canidates list O_O
-		local anygatunek = allGatunki[math.random(1, #allGatunki)] -- reverse wild oat sowing
-		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-		child = crossover(genetic_material, blind_date) -- romantic calculations are involved
-	else
+	local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
+	local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
+	local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
+	local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility? 
+	if dd < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+		child = crossover(genetic_material, blind_date) -- only if canidate seems compatible
+	else -- prefer inbreeding over incompatibility... 
 		attractive_cousin = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		child = copyHotness(attractive_cousin) -- CLONE THE HOTNESS!!!
 	end
