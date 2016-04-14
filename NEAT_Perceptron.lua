@@ -48,7 +48,7 @@ FitnessCutoff = 1
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.28 -- Different signal strength between various neurons.
-DeltaThreshold = 0.1 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.236
 PerturbChance = 0.94
@@ -508,7 +508,7 @@ function enableDisableMutate(cultivar, enable)
 	if #candidates == 0 then
 		return
 	elseif enable then
-		chance = math.max(cultivar.mutationRates["enable"], EnableMutationChance)
+		chance = math.min(cultivar.mutationRates["enable"], EnableMutationChance)
 		for c, iter_candidate in ipairs(candidates) do
 			if chance > math.random() then
 				iter_candidate.enabled = not iter_candidate.enabled
