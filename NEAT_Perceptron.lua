@@ -48,7 +48,7 @@ FitnessCutoff = 1
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.28 -- Different signal strength between various neurons.
-DeltaThreshold = 0.6 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.1 -- Mutations WILL happen. Embrace change.
 
 MutateConnectionsChance = 0.236
 PerturbChance = 0.94
@@ -57,8 +57,8 @@ LinkMutationChance = 1.618
 NodeMutationChance = 0.618
 BiasMutationChance = 1.15
 StepSize = 0.0611
-DisableMutationChance = Inputs * 0.028 -- 2.8% chance to disable currently active gene
-EnableMutationChance = Inputs * 0.012 -- Try to [re]enable 1.2% of dormant (inactive) genes
+DisableMutationChance = Inputs * 0.02 -- 2% chance to disable currently active gene
+EnableMutationChance = Inputs * 0.007 -- Try to [re]enable 0.7% of dormant (inactive) genes
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -508,14 +508,14 @@ function enableDisableMutate(cultivar, enable)
 	if #candidates == 0 then
 		return
 	elseif enable then
-		chance = cultivar.mutationRates["enable"]
+		chance = math.max(cultivar.mutationRates["enable"], EnableMutationChance)
 		for c, iter_candidate in ipairs(candidates) do
 			if chance > math.random() then
 				iter_candidate.enabled = not iter_candidate.enabled
 			end
 		end
 	else
-		chance = cultivar.mutationRates["disable"]
+		chance = math.max(cultivar.mutationRates["disable"], DisableMutationChance)
 		for c, iter_candidate in ipairs(candidates) do
 			if chance > math.random() then
 				iter_candidate.enabled = not iter_candidate.enabled
@@ -528,9 +528,9 @@ end
 function mutate(cultivar)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		if math.random(1,2) == 1 then
-			cultivar.mutationRates[mutation] = 0.95*rate
+			cultivar.mutationRates[mutation] = 0.93534*rate
 		else
-			cultivar.mutationRates[mutation] = 1.05263*rate
+			cultivar.mutationRates[mutation] = 1.05*rate
 		end
 	end
 
