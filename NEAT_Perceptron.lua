@@ -16,7 +16,7 @@ Filename = "DP1.state" -- or change the filename on this line. Either way is fin
 -- My license for this fork is LGPL3, but SethBling has some legal rights too...
 -- SethBling, please contact @kuzetsa on twitter I'll do a full rewrite if needed
 
-ButtonNames = { "A", "B", "X", "Y", "Up", "Down", "Left", "Right" }
+ButtonNames = { "B", "Y", "Right" } -- Spin jump is "A" but less jumpy, so disable for now.
 
 math.randomseed(os.time()) -- unix timestamp to initialize seed
 burn_a_bunch = os.time() + 2 -- try for 2 seconds
@@ -35,6 +35,7 @@ Outputs = #ButtonNames
 
 Nyoom = 0
 NyoomCumulator = 0
+blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 1 -- Prevent sudden growth spike
@@ -147,17 +148,24 @@ function getInputs()
 
 	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
 	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
-	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
 	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
 	Nyoom = math.max(tmp, 0) -- walking backwards is ignored for score purposes
-
+	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
+	
+	if blockage == 5 or blockage == 1 then
+		blockagecounter = 10
+	else
+		blockagecounter = blockagecounter - 1
+	end
+	
+	
 	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
 	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
 	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
-	if GroundTouch == 1 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
+	if GroundTouch ~= 0 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
 		inputs[#inputs] = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
-	elseif GroundTouch == 1 and RawSpeed < 0x31 then
+	elseif GroundTouch ~= 0 and RawSpeed < 0x31 and blockagecounter <= 0 then
 		inputs[#inputs] = -1 -- make it easier to jump (minor negative bias)
 	elseif blockage == 5 and GroundTouch ~= 0 and RawSpeed == 0 then
 		if pool.EvaluatedFrames%6 > 2 then
@@ -165,8 +173,10 @@ function getInputs()
 		else
 			inputs[#inputs] = 1 -- We're stuck, so trigger a jump.
 		end
-	elseif blockage == 1 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
+	elseif blockagecounter > 0 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
 		inputs[#inputs] = 1
+	elseif blockagecounter <= 0 and GroundTouch ~= 0 then
+		blockagecounter = 0 -- cleared the obstacle, probably, and we've landed
 	else
 		inputs[#inputs] = 0
 	end
@@ -870,6 +880,7 @@ function initializeRun()
 	pool.RealtimeFitness = 0
 	Nyoom = 0 -- motion starts at zero
 	NyoomCumulator = 0 -- accumulated speed bonus also starts at zero
+	blockagecounter = 0 -- [re]initialize at start of a run
 	timeout = TimeoutConstant
 	clearJoypad()
 
@@ -885,15 +896,6 @@ function evaluateCurrent()
 
 	inputs = getInputs()
 	controller = evaluateThoughts(eval_cultivar.brain, inputs)
-
-	if controller["P1 Left"] and controller["P1 Right"] then
-		controller["P1 Left"] = false
-		controller["P1 Right"] = false
-	end
-	if controller["P1 Up"] and controller["P1 Down"] then
-		controller["P1 Up"] = false
-		controller["P1 Down"] = false
-	end
 
 	joypad.set(controller)
 end
