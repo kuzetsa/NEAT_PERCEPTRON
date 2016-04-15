@@ -50,16 +50,17 @@ FitnessCutoff = 1
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.28 -- Different signal strength between various neurons.
 DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
-
-MutateConnectionsChance = 0.236
-PerturbChance = 0.94
 CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
-LinkMutationChance = 1.618
-NodeMutationChance = 0.618
-BiasMutationChance = 1.15
-StepSize = 0.0611
-DisableMutationChance = Inputs * 0.02 -- 2% chance to disable currently active gene
+
 EnableMutationChance = Inputs * 0.007 -- Try to [re]enable 0.7% of dormant (inactive) genes
+DisableMutationChance = Inputs * 0.01 -- 1% chance to disable currently active gene
+BiasMutationChance = 0.75
+SynapseLinkChance = 2.483
+NodeMutationChance = 2.169
+MutateSynapseChance = 0.84
+StepSize = 0.0611
+PerturbChance = 0.94 -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
+
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -225,12 +226,12 @@ function newCritter()
 	critter.brain = {}
 	critter.maxneuron = 0
 	critter.mutationRates = {}
-	critter.mutationRates["connections"] = MutateConnectionsChance
-	critter.mutationRates["link"] = LinkMutationChance
-	critter.mutationRates["bias"] = BiasMutationChance
-	critter.mutationRates["node"] = NodeMutationChance
 	critter.mutationRates["enable"] = EnableMutationChance
 	critter.mutationRates["disable"] = DisableMutationChance
+	critter.mutationRates["bias"] = BiasMutationChance
+	critter.mutationRates["node"] = NodeMutationChance
+	critter.mutationRates["LinkSynapse"] = SynapseLinkChance
+	critter.mutationRates["MutateSynapse"] = MutateSynapseChance
 	critter.mutationRates["step"] = StepSize
 
 	return critter
@@ -242,12 +243,13 @@ function copyHotness(billy)
 		table.insert(cultivar2.genes, copyGene(billy.genes[g]))
 	end
 	cultivar2.maxneuron = billy.maxneuron
-	cultivar2.mutationRates["connections"] = billy.mutationRates["connections"]
-	cultivar2.mutationRates["link"] = billy.mutationRates["link"]
-	cultivar2.mutationRates["bias"] = billy.mutationRates["bias"]
-	cultivar2.mutationRates["node"] = billy.mutationRates["node"]
 	cultivar2.mutationRates["enable"] = billy.mutationRates["enable"]
 	cultivar2.mutationRates["disable"] = billy.mutationRates["disable"]
+	cultivar2.mutationRates["bias"] = billy.mutationRates["bias"]
+	cultivar2.mutationRates["node"] = billy.mutationRates["node"]
+	cultivar2.mutationRates["LinkSynapse"] = billy.mutationRates["LinkSynapse"]
+	cultivar2.mutationRates["MutateSynapse"] = billy.mutationRates["MutateSynapse"]
+	cultivar2.mutationRates["step"] = billy.mutationRates["step"]
 
 	return cultivar2
 end
@@ -440,7 +442,7 @@ function containsLink(genes, link)
 	end
 end
 
-function pointMutate(cultivar)
+function SynapseMutate(cultivar)
 	local step = cultivar.mutationRates["step"]
 
 	for i=1,#cultivar.genes do
@@ -453,7 +455,7 @@ function pointMutate(cultivar)
 	end
 end
 
-function linkMutate(cultivar, forceBias)
+function LinkSynapse(cultivar, forceBias)
 	local neuron1 = randomNeuron(cultivar.genes, false)
 	local neuron2 = randomNeuron(cultivar.genes, true)
 	 
@@ -472,7 +474,7 @@ function linkMutate(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = math.random((InputSize+2), Inputs) -- very perceptron O_O
+		newLink.into = Inputs
 	end
 
 	if containsLink(cultivar.genes, newLink) then
@@ -547,15 +549,31 @@ function mutate(cultivar)
 			cultivar.mutationRates[mutation] = 1.05*rate
 		end
 	end
-
-	if cultivar.mutationRates["connections"] > math.random() then
-		pointMutate(cultivar)
+	if cultivar.mutationRates["enable"] > EnableMutationChance then -- prevent high rates
+		tmp = cultivar.mutationRates["enable"] * EnableMutationChance
+		cultivar.mutationRates["enable"] = math.sqrt(tmp) -- geometric mean
+	end
+	if cultivar.mutationRates["disable"] < DisableMutationChance then -- prevent LOW rates (removing genes preferred)
+		tmp = cultivar.mutationRates["disable"] * DisableMutationChance
+		cultivar.mutationRates["disable"] = math.sqrt(tmp)
+	end
+	if cultivar.mutationRates["bias"] > BiasMutationChance then -- prevent high rates
+		tmp = cultivar.mutationRates["bias"] * BiasMutationChance
+		cultivar.mutationRates["bias"] = math.sqrt(tmp) -- geometric mean
+	end
+	if cultivar.mutationRates["step"] > StepSize then -- prevent high rates
+		tmp = cultivar.mutationRates["step"] * StepSize
+		cultivar.mutationRates["step"] = math.sqrt(tmp) -- geometric mean
 	end
 
-	local p = cultivar.mutationRates["link"]
+	if cultivar.mutationRates["MutateSynapse"] > math.random() then
+		SynapseMutate(cultivar) -- neural interconnect signal strength (synapse) re-tune
+	end
+
+	local p = cultivar.mutationRates["LinkSynapse"]
 	while p > 0 do
 		if p > math.random() then
-			linkMutate(cultivar, false)
+			LinkSynapse(cultivar, false)
 		end
 		p = p - 1
 	end
@@ -563,7 +581,7 @@ function mutate(cultivar)
 	p = cultivar.mutationRates["bias"]
 	while p > 0 do
 		if p > math.random() then
-			linkMutate(cultivar, true)
+			LinkSynapse(cultivar, true) -- connection is forced to originate at bias node
 		end
 		p = p - 1
 	end
@@ -576,8 +594,8 @@ function mutate(cultivar)
 		p = p - 1
 	end
 
-	enableDisableMutate(cultivar, false)  -- DISABLE FIRST!!!
 	enableDisableMutate(cultivar, true)
+	enableDisableMutate(cultivar, false)
 
 
 end
