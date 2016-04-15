@@ -30,7 +30,7 @@ InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 Forward_Looking = math.floor(0.8 * 16 * BoxRadius) -- vision tweak
 Mario_Map_Offset = math.floor(0.8 * 5 * BoxRadius) -- debug window tweak
 
-Inputs = InputSize+1+3 -- bias cell, plus a few (3) special perceptrons
+Inputs = InputSize+3 -- bias cell, plus a special "jump" perceptronm plus speed cell
 Outputs = #ButtonNames
 
 Nyoom = 0
@@ -145,26 +145,30 @@ function getInputs()
 		end
 	end
 
-	inputs[#inputs+1] = 0 -- allocation (velocity, X-axis)
-	Nyoom = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
-	examine = Nyoom / 8.324 -- this affects score EVERY FRAME!!!
-	Nyoom = math.max(examine, 0) -- walking backwards is ignored for score purposes
-	inputs[#inputs] = examine -- potentially used for biassing neural net :)
+	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
+	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
+	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
+	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
+	Nyoom = math.max(tmp, 0) -- walking backwards is ignored for score purposes
 
-	inputs[#inputs+1] = 0 -- allocation (on the ground?)
-	examine = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
-	if examine ~= 1 then -- ignores touching sides (see below)
-		inputs[#inputs] = -1 -- any other value besides "1", assume jumping
-	else
-		inputs[#inputs] = 1 -- we can jump, etc. so generate "on the ground" signal
-	end
+	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
+	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
-	inputs[#inputs+1] = 0 -- allocation (running into a wall?)
-	examine = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
-	if examine ~= 5 then
-		inputs[#inputs] = 1 -- "normal" signal = blocked (no obstacle to the right)
+	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
+	if GroundTouch == 1 and RawSpeed >= 0x2F then -- ignores touching sides (see below)
+		inputs[#inputs] = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
+	elseif GroundTouch == 1 and RawSpeed < 0x2F then
+		inputs[#inputs] = -1 -- negative bias
+	elseif blockage == 5 and GroundTouch ~= 0 and RawSpeed == 0 then
+		if pool.EvaluatedFrames%6 > 2 then
+			inputs[#inputs] = -1 -- negative bias
+		else
+			inputs[#inputs] = 1 -- attempt to trigger a jump
+		end
+	elseif blockage == 1 and GroundTouch == 0 then -- jump REALLY HIGH (if possible, over the obstacle)
+		inputs[#inputs] = 1
 	else
-		inputs[#inputs] = -1 -- Solid block to the right, AND solid ground (can't go down)
+		inputs[#inputs] = -0.1 -- MINOR negative bias
 	end
 
 	return inputs
@@ -458,7 +462,7 @@ function linkMutate(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = math.random((InputSize+1), Inputs) -- very perceptron O_O
+		newLink.into = math.random((InputSize+2), Inputs) -- very perceptron O_O
 	end
 
 	if containsLink(cultivar.genes, newLink) then
