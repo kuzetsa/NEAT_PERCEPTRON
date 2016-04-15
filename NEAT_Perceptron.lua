@@ -155,20 +155,20 @@ function getInputs()
 	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
 	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
-	if GroundTouch == 1 and RawSpeed >= 0x2F then -- ignores touching sides (see below)
+	if GroundTouch == 1 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
 		inputs[#inputs] = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
-	elseif GroundTouch == 1 and RawSpeed < 0x2F then
-		inputs[#inputs] = -1 -- negative bias
+	elseif GroundTouch == 1 and RawSpeed < 0x31 then
+		inputs[#inputs] = -1 -- make it easier to jump (minor negative bias)
 	elseif blockage == 5 and GroundTouch ~= 0 and RawSpeed == 0 then
 		if pool.EvaluatedFrames%6 > 2 then
-			inputs[#inputs] = -1 -- negative bias
+			inputs[#inputs] = -9037 -- Mission critical: Jump ASAP (huge bias)
 		else
-			inputs[#inputs] = 1 -- attempt to trigger a jump
+			inputs[#inputs] = 1 -- We're stuck, so trigger a jump.
 		end
-	elseif blockage == 1 and GroundTouch == 0 then -- jump REALLY HIGH (if possible, over the obstacle)
+	elseif blockage == 1 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
 		inputs[#inputs] = 1
 	else
-		inputs[#inputs] = -0.1 -- MINOR negative bias
+		inputs[#inputs] = 0
 	end
 
 	return inputs
