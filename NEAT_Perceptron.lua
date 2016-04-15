@@ -175,7 +175,9 @@ function getInputs()
 		end
 	elseif blockagecounter > 0 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
 		inputs[#inputs] = 1
-	elseif 
+	elseif blockagecounter <= 0 and GroundTouch ~= 0 then
+		blockagecounter = 0 -- cleared the obstacle, probably, and we've landed
+	else
 		inputs[#inputs] = 0
 	end
 
