@@ -52,8 +52,8 @@ DeltaWeights = 0.28 -- Different signal strength between various neurons.
 DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-EnableMutationChance = Inputs * 0.007 -- Try to [re]enable 0.7% of dormant (inactive) genes
-DisableMutationChance = Inputs * 0.01 -- 1% chance to disable currently active gene
+EnableMutationChance = 0.007 -- Try to [re]enable 0.7% of dormant (inactive) genes
+DisableMutationChance = 0.01 -- 1% chance to disable currently active gene
 BiasMutationChance = 0.75
 SynapseLinkChance = 2.483
 NodeMutationChance = 2.169
@@ -513,28 +513,26 @@ function nodeMutate(cultivar)
 	table.insert(cultivar.genes, gene2)
 end
 
-function enableDisableMutate(cultivar, enable)
+function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	local candidates = {}
 	for _,gene in pairs(cultivar.genes) do
-		if gene.enabled == not enable then
-			table.insert(candidates, gene)
-		end
+		table.insert(candidates, gene) -- if a gene exists AT ALL
 	end
 
-	if #candidates == 0 then
+	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
 		return
-	elseif enable then
+	elseif GeneMaybeEnabled then
 		chance = math.min(cultivar.mutationRates["enable"], EnableMutationChance)
 		for c, iter_candidate in ipairs(candidates) do
 			if chance > math.random() then
-				iter_candidate.enabled = not iter_candidate.enabled
+				iter_candidate.enabled = GeneMaybeEnabled -- gene could already be enabled
 			end
 		end
 	else
 		chance = math.max(cultivar.mutationRates["disable"], DisableMutationChance)
 		for c, iter_candidate in ipairs(candidates) do
 			if chance > math.random() then
-				iter_candidate.enabled = not iter_candidate.enabled
+				iter_candidate.enabled = GeneMaybeEnabled -- gene might already be disabled
 			end
 		end
 	end
