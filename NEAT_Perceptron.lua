@@ -53,11 +53,11 @@ PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes 
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.7 -- Different signal strength between various neurons.
-DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.17929 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.47978 -- 47.978% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-EnableMutationChance = 0.012 -- Try to [re]enable 1.2% of dormant (inactive) genes
-DisableMutationChance = 0.015 -- 1.5% chance to disable currently active gene
+EnableMutationChance = 0.017 -- Try to [re]enable 1.7% of dormant (inactive) genes
+DisableMutationChance = 0.019 -- 1.9% chance to disable currently active gene
 BiasMutationChance = 0.42
 SynapseLinkChance = 1.5
 NodeMutationChance = 0.46
@@ -546,9 +546,9 @@ end
 function mutate(cultivar)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		if math.random(1,2) == 1 then
-			cultivar.mutationRates[mutation] = 0.93534*rate
+			cultivar.mutationRates[mutation] = 0.964*rate
 		else
-			cultivar.mutationRates[mutation] = 1.05*rate
+			cultivar.mutationRates[mutation] = 1.023*rate
 		end
 	end
 
@@ -738,7 +738,7 @@ function reproduce(BaseGatunek)
 
 	if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
 		table.insert(PotentialMates, blind_date)
-		if DiffComposite < BestDiff then
+		if DiffComposite > 0 and DiffComposite < BestDiff then
 			BestDiff = dd
 		end
 	end
