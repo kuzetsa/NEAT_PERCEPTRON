@@ -56,8 +56,7 @@ DeltaWeights = 0.7 -- Different signal strength between various neurons.
 DeltaThreshold = 0.17929 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.47978 -- 47.978% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-EnableMutationChance = 0.017 -- Try to [re]enable 1.7% of dormant (inactive) genes
-DisableMutationChance = 0.019 -- 1.9% chance to disable currently active gene
+mutationBaseRates["DormancyToggle"] = 0.017 -- Try to disable / [re]enable 1.7% of active/dormant genes
 BiasMutationChance = 0.42
 SynapseLinkChance = 1.5
 NodeMutationChance = 0.46
@@ -228,13 +227,13 @@ function newCritter()
 	critter.brain = {}
 	critter.maxneuron = 0
 	critter.mutationRates = {}
-	critter.mutationRates["enable"] = EnableMutationChance
-	critter.mutationRates["disable"] = DisableMutationChance
-	critter.mutationRates["bias"] = BiasMutationChance
-	critter.mutationRates["node"] = NodeMutationChance
+	critter.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]Chance
+	critter.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyToggle"]Chance
+	critter.mutationRates["BiasMutation"] = BiasMutationChance
+	critter.mutationRates["NodeMutation"] = NodeMutationChance
 	critter.mutationRates["LinkSynapse"] = SynapseLinkChance
 	critter.mutationRates["MutateSynapse"] = MutateSynapseChance
-	critter.mutationRates["step"] = StepSize
+	critter.mutationRates["StepSize"] = StepSize
 
 	return critter
 end
@@ -245,13 +244,13 @@ function copyHotness(billy)
 		table.insert(cultivar2.genes, copyGene(billy.genes[g]))
 	end
 	cultivar2.maxneuron = billy.maxneuron
-	cultivar2.mutationRates["enable"] = billy.mutationRates["enable"]
-	cultivar2.mutationRates["disable"] = billy.mutationRates["disable"]
-	cultivar2.mutationRates["bias"] = billy.mutationRates["bias"]
-	cultivar2.mutationRates["node"] = billy.mutationRates["node"]
+	cultivar2.mutationRates["DormancyToggle"] = billy.mutationRates["DormancyToggle"]
+	cultivar2.mutationRates["DormancyInvert"] = billy.mutationRates["DormancyInvert"]
+	cultivar2.mutationRates["BiasMutation"] = billy.mutationRates["BiasMutation"]
+	cultivar2.mutationRates["NodeMutation"] = billy.mutationRates["NodeMutation"]
 	cultivar2.mutationRates["LinkSynapse"] = billy.mutationRates["LinkSynapse"]
 	cultivar2.mutationRates["MutateSynapse"] = billy.mutationRates["MutateSynapse"]
-	cultivar2.mutationRates["step"] = billy.mutationRates["step"]
+	cultivar2.mutationRates["StepSize"] = billy.mutationRates["StepSize"]
 
 	return cultivar2
 end
@@ -445,7 +444,7 @@ function containsLink(genes, link)
 end
 
 function SynapseMutate(cultivar)
-	local step = cultivar.mutationRates["step"]
+	local step = cultivar.mutationRates["StepSize"]
 
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
@@ -526,14 +525,14 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
 		return
 	elseif GeneMaybeEnabled then
-		EnableChance = math.min(cultivar.mutationRates["disable"], cultivar.mutationRates["enable"]) -- whichever is lower
+		EnableChance = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
 		for c, iter_candidate in ipairs(candidates) do
 			if EnableChance > math.random() then
 				iter_candidate.enabled = GeneMaybeEnabled -- gene could already be enabled
 			end
 		end
 	else
-		DisableChance = math.max(cultivar.mutationRates["disable"], cultivar.mutationRates["enable"]) -- whichever is higher
+		DisableChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is higher
 		for c, iter_candidate in ipairs(candidates) do
 			if DisableChance > math.random() then
 				iter_candidate.enabled = GeneMaybeEnabled -- gene might already be disabled
@@ -553,33 +552,33 @@ function mutate(cultivar)
 	end
 
 	-- ITERATOR COULD BE USED FOR THIS, BUT WOULD REQUIRE A REFACTOR
-	if cultivar.mutationRates["enable"] > EnableMutationChance then -- prevent high rates
-		tmp = cultivar.mutationRates["enable"] * EnableMutationChance
-		cultivar.mutationRates["enable"] = math.sqrt(tmp) -- geometric mean
+	if cultivar.mutationRates["DormancyToggle"] > mutationBaseRates["DormancyToggle"]Chance then
+		tmp = cultivar.mutationRates["DormancyToggle"] * mutationBaseRates["DormancyToggle"]Chance
+		cultivar.mutationRates["DormancyToggle"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["disable"] < DisableMutationChance then -- prevent LOW rates (removing genes preferred)
-		tmp = cultivar.mutationRates["disable"] * DisableMutationChance
-		cultivar.mutationRates["disable"] = math.sqrt(tmp)
+	if cultivar.mutationRates["DormancyInvert"] > mutationBaseRates["DormancyToggle"]Chance then
+		tmp = cultivar.mutationRates["DormancyInvert"] * mutationBaseRates["DormancyToggle"]Chance
+		cultivar.mutationRates["DormancyInvert"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["bias"] > BiasMutationChance then -- prevent high rates
-		tmp = cultivar.mutationRates["bias"] * BiasMutationChance
-		cultivar.mutationRates["bias"] = math.sqrt(tmp) -- geometric mean
+	if cultivar.mutationRates["BiasMutation"] > BiasMutationChance then
+		tmp = cultivar.mutationRates["BiasMutation"] * BiasMutationChance
+		cultivar.mutationRates["BiasMutation"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["node"] > NodeMutationChance then -- prevent high rates
-		tmp = cultivar.mutationRates["node"] * NodeMutationChance
-		cultivar.mutationRates["node"] = math.sqrt(tmp) -- geometric mean
+	if cultivar.mutationRates["NodeMutation"] > NodeMutationChance then
+		tmp = cultivar.mutationRates["NodeMutation"] * NodeMutationChance
+		cultivar.mutationRates["NodeMutation"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["LinkSynapse"] > SynapseLinkChance then -- prevent high rates
+	if cultivar.mutationRates["LinkSynapse"] > SynapseLinkChance then
 		tmp = cultivar.mutationRates["LinkSynapse"] * SynapseLinkChance
 		cultivar.mutationRates["LinkSynapse"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["MutateSynapse"] > MutateSynapseChance then -- prevent high rates
+	if cultivar.mutationRates["MutateSynapse"] > MutateSynapseChance then
 		tmp = cultivar.mutationRates["MutateSynapse"] * MutateSynapseChance
 		cultivar.mutationRates["MutateSynapse"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["step"] > StepSize then -- prevent high rates
-		tmp = cultivar.mutationRates["step"] * StepSize
-		cultivar.mutationRates["step"] = math.sqrt(tmp) -- geometric mean
+	if cultivar.mutationRates["StepSize"] > StepSize then
+		tmp = cultivar.mutationRates["StepSize"] * StepSize
+		cultivar.mutationRates["StepSize"] = math.sqrt(tmp) -- geometric mean
 	end
 
 	if cultivar.mutationRates["MutateSynapse"] > math.random() then
@@ -594,7 +593,7 @@ function mutate(cultivar)
 		p = p - 1
 	end
 
-	p = cultivar.mutationRates["bias"]
+	p = cultivar.mutationRates["BiasMutation"]
 	while p > 0 do
 		if p > math.random() then
 			LinkSynapse(cultivar, true) -- connection is forced to originate at bias node
@@ -602,7 +601,7 @@ function mutate(cultivar)
 		p = p - 1
 	end
 
-	p = cultivar.mutationRates["node"]
+	p = cultivar.mutationRates["NodeMutation"]
 	while p > 0 do
 		if p > math.random() then
 			nodeMutate(cultivar)
@@ -940,7 +939,7 @@ end
 function clearJoypad()
 	controller = {}
 	for b = 1,#ButtonNames do
-		controller["P1 " .. ButtonNames[b]] = false
+		controller["P1 " .. ButtonNames[b] = false
 	end
 	joypad.set(controller)
 end
