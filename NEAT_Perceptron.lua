@@ -536,11 +536,14 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 end
 
 function mutate(cultivar)
+	OhNineSixFour = math.log(0.964)
+	OneOhTwoThree = math.log(1.023)
 	for mutation,rate in pairs(cultivar.mutationRates) do
+		tmpRate = math.random()
 		if math.random(1,2) == 1 then
-			tmpRate = 0.964*rate
+			tmpRate = math.exp(OhNineSixFour*rate*tmpRate)
 		else
-			tmpRate = 1.023*rate
+			tmpRate = math.exp(OneOhTwoThree*rate*tmpRate)
 		end
 		if tmpRate > mutationBaseRates[mutation] then
 			tmpGeo = tmpRate * mutationBaseRates[mutation]
