@@ -231,7 +231,7 @@ function newCritter()
 	critter.maxneuron = 0
 	critter.mutationRates = {}
 	for mutation,rate in pairs(mutationBaseRates) do
-		critter.mutationRates[mutation] = mutationBaseRates[mutation]
+		critter.mutationRates[mutation] = rate
 	end
 	return critter
 end
@@ -243,7 +243,7 @@ function copyHotness(billy)
 	end
 	cultivar2.maxneuron = billy.maxneuron
 	for mutation,rate in pairs(billy.mutationRates) do
-		cultivar2.mutationRates[mutation] = billy.mutationRates[mutation]
+		cultivar2.mutationRates[mutation] = rate
 	end
 	return cultivar2
 end
