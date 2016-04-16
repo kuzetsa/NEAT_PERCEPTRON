@@ -149,13 +149,13 @@ function getInputs()
 		end
 	end
 
+	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
 	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
-	Nyoom = math.max(tmp, 0) -- walking backwards is ignored for score purposes
+	Nyoom = math.max(tmp, 0) -- sliding backwards is ignored by fitness algorithm
 
 	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
 	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
-	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
 	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
 	
