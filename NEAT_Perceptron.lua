@@ -227,8 +227,8 @@ function newCritter()
 	critter.brain = {}
 	critter.maxneuron = 0
 	critter.mutationRates = {}
-	critter.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]Chance
-	critter.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyToggle"]Chance
+	critter.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]
+	critter.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyToggle"]
 	critter.mutationRates["BiasMutation"] = BiasMutationChance
 	critter.mutationRates["NodeMutation"] = NodeMutationChance
 	critter.mutationRates["LinkSynapse"] = SynapseLinkChance
@@ -552,12 +552,12 @@ function mutate(cultivar)
 	end
 
 	-- ITERATOR COULD BE USED FOR THIS, BUT WOULD REQUIRE A REFACTOR
-	if cultivar.mutationRates["DormancyToggle"] > mutationBaseRates["DormancyToggle"]Chance then
-		tmp = cultivar.mutationRates["DormancyToggle"] * mutationBaseRates["DormancyToggle"]Chance
+	if cultivar.mutationRates["DormancyToggle"] > mutationBaseRates["DormancyToggle"] then
+		tmp = cultivar.mutationRates["DormancyToggle"] * mutationBaseRates["DormancyToggle"]
 		cultivar.mutationRates["DormancyToggle"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["DormancyInvert"] > mutationBaseRates["DormancyToggle"]Chance then
-		tmp = cultivar.mutationRates["DormancyInvert"] * mutationBaseRates["DormancyToggle"]Chance
+	if cultivar.mutationRates["DormancyInvert"] > mutationBaseRates["DormancyToggle"] then
+		tmp = cultivar.mutationRates["DormancyInvert"] * mutationBaseRates["DormancyToggle"]
 		cultivar.mutationRates["DormancyInvert"] = math.sqrt(tmp) -- geometric mean
 	end
 	if cultivar.mutationRates["BiasMutation"] > BiasMutationChance then
@@ -939,7 +939,7 @@ end
 function clearJoypad()
 	controller = {}
 	for b = 1,#ButtonNames do
-		controller["P1 " .. ButtonNames[b] = false
+		controller["P1 " .. ButtonNames[b]] = false
 	end
 	joypad.set(controller)
 end
