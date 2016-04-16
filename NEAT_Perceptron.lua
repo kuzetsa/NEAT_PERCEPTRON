@@ -149,10 +149,14 @@ function getInputs()
 		end
 	end
 
-	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
-	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
 	Nyoom = math.max(tmp, 0) -- walking backwards is ignored for score purposes
+
+	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
+	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
+
+	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
+	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
 	
 	if blockage == 5 or blockage == 1 then
@@ -162,13 +166,8 @@ function getInputs()
 	else
 		blockagecounter = blockagecounter - 1
 	end
-	
-	
-	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
-	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
 	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
-
 	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- we're stuck, handle it
 		if pool.EvaluatedFrames%6 > 2 then
 			inputs[#inputs] = -9037 -- Mission critical: Jump ASAP (huge bias)
@@ -479,7 +478,7 @@ function LinkSynapse(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = Inputs
+		newLink.into = math.random((Inputs-1), Inputs) -- bias, and the one(s) before
 	end
 
 	if containsLink(cultivar.genes, newLink) then
