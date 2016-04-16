@@ -56,12 +56,15 @@ DeltaWeights = 0.7 -- Different signal strength between various neurons.
 DeltaThreshold = 0.17929 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.47978 -- 47.978% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-mutationBaseRates["DormancyToggle"] = 0.017 -- Try to disable / [re]enable 1.7% of active/dormant genes
-BiasMutationChance = 0.42
-SynapseLinkChance = 1.5
-NodeMutationChance = 0.46
-MutateSynapseChance = 0.939
-StepSize = 0.04
+tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dormant genes
+mutationBaseRates = {}
+mutationBaseRates["DormancyToggle"] = tmpDormancyNegation
+mutationBaseRates["DormancyInvert"] = tmpDormancyNegation
+mutationBaseRates["BiasMutation"] = 0.42
+mutationBaseRates["NodeMutation"] = 0.46
+mutationBaseRates["LinkSynapse"] = 1.5
+mutationBaseRates["MutateSynapse"] = 0.939
+mutationBaseRates["StepSize"] = 0.04
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -228,12 +231,12 @@ function newCritter()
 	critter.maxneuron = 0
 	critter.mutationRates = {}
 	critter.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]
-	critter.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyToggle"]
-	critter.mutationRates["BiasMutation"] = BiasMutationChance
-	critter.mutationRates["NodeMutation"] = NodeMutationChance
-	critter.mutationRates["LinkSynapse"] = SynapseLinkChance
-	critter.mutationRates["MutateSynapse"] = MutateSynapseChance
-	critter.mutationRates["StepSize"] = StepSize
+	critter.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyInvert"]
+	critter.mutationRates["BiasMutation"] = mutationBaseRates["BiasMutation"]
+	critter.mutationRates["NodeMutation"] = mutationBaseRates["NodeMutation"]
+	critter.mutationRates["LinkSynapse"] = mutationBaseRates["LinkSynapse"]
+	critter.mutationRates["MutateSynapse"] = mutationBaseRates["MutateSynapse"]
+	critter.mutationRates["StepSize"] = mutationBaseRates["StepSize"]
 
 	return critter
 end
@@ -560,24 +563,24 @@ function mutate(cultivar)
 		tmp = cultivar.mutationRates["DormancyInvert"] * mutationBaseRates["DormancyToggle"]
 		cultivar.mutationRates["DormancyInvert"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["BiasMutation"] > BiasMutationChance then
-		tmp = cultivar.mutationRates["BiasMutation"] * BiasMutationChance
+	if cultivar.mutationRates["BiasMutation"] > mutationBaseRates["BiasMutation"] then
+		tmp = cultivar.mutationRates["BiasMutation"] * mutationBaseRates["BiasMutation"]
 		cultivar.mutationRates["BiasMutation"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["NodeMutation"] > NodeMutationChance then
-		tmp = cultivar.mutationRates["NodeMutation"] * NodeMutationChance
+	if cultivar.mutationRates["NodeMutation"] > mutationBaseRates["NodeMutation"] then
+		tmp = cultivar.mutationRates["NodeMutation"] * mutationBaseRates["NodeMutation"]
 		cultivar.mutationRates["NodeMutation"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["LinkSynapse"] > SynapseLinkChance then
-		tmp = cultivar.mutationRates["LinkSynapse"] * SynapseLinkChance
+	if cultivar.mutationRates["LinkSynapse"] > mutationBaseRates["LinkSynapse"] then
+		tmp = cultivar.mutationRates["LinkSynapse"] * mutationBaseRates["LinkSynapse"]
 		cultivar.mutationRates["LinkSynapse"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["MutateSynapse"] > MutateSynapseChance then
-		tmp = cultivar.mutationRates["MutateSynapse"] * MutateSynapseChance
+	if cultivar.mutationRates["MutateSynapse"] > mutationBaseRates["MutateSynapse"] then
+		tmp = cultivar.mutationRates["MutateSynapse"] * mutationBaseRates["MutateSynapse"]
 		cultivar.mutationRates["MutateSynapse"] = math.sqrt(tmp) -- geometric mean
 	end
-	if cultivar.mutationRates["StepSize"] > StepSize then
-		tmp = cultivar.mutationRates["StepSize"] * StepSize
+	if cultivar.mutationRates["StepSize"] > mutationBaseRates["StepSize"] then
+		tmp = cultivar.mutationRates["StepSize"] * mutationBaseRates["StepSize"]
 		cultivar.mutationRates["StepSize"] = math.sqrt(tmp) -- geometric mean
 	end
 
