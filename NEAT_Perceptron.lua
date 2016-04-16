@@ -737,8 +737,8 @@ function reproduce(BaseGatunek)
 	local DiffComposite = dd + dw
 
 	if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
-		table.insert(PotentialMates, blind_date)
 		if DiffComposite > 0 and DiffComposite < BestDiff then
+			table.insert(PotentialMates, blind_date)
 			BestDiff = dd
 		end
 	end
