@@ -538,40 +538,15 @@ end
 function mutate(cultivar)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		if math.random(1,2) == 1 then
-			cultivar.mutationRates[mutation] = 0.964*rate
+			tmpRate = 0.964*rate
 		else
-			cultivar.mutationRates[mutation] = 1.023*rate
+			tmpRate = 1.023*rate
 		end
-	end
-
-	-- ITERATOR COULD BE USED FOR THIS, BUT WOULD REQUIRE A REFACTOR
-	if cultivar.mutationRates["DormancyToggle"] > mutationBaseRates["DormancyToggle"] then
-		tmp = cultivar.mutationRates["DormancyToggle"] * mutationBaseRates["DormancyToggle"]
-		cultivar.mutationRates["DormancyToggle"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["DormancyInvert"] > mutationBaseRates["DormancyToggle"] then
-		tmp = cultivar.mutationRates["DormancyInvert"] * mutationBaseRates["DormancyToggle"]
-		cultivar.mutationRates["DormancyInvert"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["BiasMutation"] > mutationBaseRates["BiasMutation"] then
-		tmp = cultivar.mutationRates["BiasMutation"] * mutationBaseRates["BiasMutation"]
-		cultivar.mutationRates["BiasMutation"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["NodeMutation"] > mutationBaseRates["NodeMutation"] then
-		tmp = cultivar.mutationRates["NodeMutation"] * mutationBaseRates["NodeMutation"]
-		cultivar.mutationRates["NodeMutation"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["LinkSynapse"] > mutationBaseRates["LinkSynapse"] then
-		tmp = cultivar.mutationRates["LinkSynapse"] * mutationBaseRates["LinkSynapse"]
-		cultivar.mutationRates["LinkSynapse"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["MutateSynapse"] > mutationBaseRates["MutateSynapse"] then
-		tmp = cultivar.mutationRates["MutateSynapse"] * mutationBaseRates["MutateSynapse"]
-		cultivar.mutationRates["MutateSynapse"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["StepSize"] > mutationBaseRates["StepSize"] then
-		tmp = cultivar.mutationRates["StepSize"] * mutationBaseRates["StepSize"]
-		cultivar.mutationRates["StepSize"] = math.sqrt(tmp) -- geometric mean
+		if tmpRate > mutationBaseRates[mutation] then
+			tmpGeo = tmpRate * mutationBaseRates[mutation]
+			tmpRate = math.sqrt(tmp) -- geometric mean
+		end
+		cultivar.mutationRates[mutation] = tmpRate
 	end
 
 	if cultivar.mutationRates["MutateSynapse"] > math.random() then
