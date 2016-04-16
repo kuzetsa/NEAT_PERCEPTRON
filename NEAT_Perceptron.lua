@@ -52,16 +52,16 @@ FiftyLogPasses = LogFifty / StaleGatunek
 PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
-DeltaWeights = 0.28 -- Different signal strength between various neurons.
-DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
+DeltaWeights = 0.7 -- Different signal strength between various neurons.
+DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 EnableMutationChance = 0.012 -- Try to [re]enable 1.2% of dormant (inactive) genes
-DisableMutationChance = 0.01 -- 1% chance to disable currently active gene
-BiasMutationChance = 0.15
-SynapseLinkChance = 5.169
-NodeMutationChance = 0.2534
-MutateSynapseChance = 0.84
+DisableMutationChance = 0.015 -- 1.5% chance to disable currently active gene
+BiasMutationChance = 0.42
+SynapseLinkChance = 1.5
+NodeMutationChance = 0.46
+MutateSynapseChance = 0.939
 StepSize = 0.04
 
 StatusRegisterPrimary = 0x42
@@ -526,16 +526,16 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
 		return
 	elseif GeneMaybeEnabled then
-		chance = math.min(cultivar.mutationRates["enable"], EnableMutationChance)
+		EnableChance = math.min(cultivar.mutationRates["disable"], cultivar.mutationRates["enable"]) -- whichever is lower
 		for c, iter_candidate in ipairs(candidates) do
-			if chance > math.random() then
+			if EnableChance > math.random() then
 				iter_candidate.enabled = GeneMaybeEnabled -- gene could already be enabled
 			end
 		end
 	else
-		chance = math.max(cultivar.mutationRates["disable"], DisableMutationChance)
+		DisableChance = math.max(cultivar.mutationRates["disable"], cultivar.mutationRates["enable"]) -- whichever is higher
 		for c, iter_candidate in ipairs(candidates) do
-			if chance > math.random() then
+			if DisableChance > math.random() then
 				iter_candidate.enabled = GeneMaybeEnabled -- gene might already be disabled
 			end
 		end
@@ -551,6 +551,8 @@ function mutate(cultivar)
 			cultivar.mutationRates[mutation] = 1.05*rate
 		end
 	end
+
+	-- ITERATOR COULD BE USED FOR THIS, BUT WOULD REQUIRE A REFACTOR
 	if cultivar.mutationRates["enable"] > EnableMutationChance then -- prevent high rates
 		tmp = cultivar.mutationRates["enable"] * EnableMutationChance
 		cultivar.mutationRates["enable"] = math.sqrt(tmp) -- geometric mean
@@ -562,6 +564,18 @@ function mutate(cultivar)
 	if cultivar.mutationRates["bias"] > BiasMutationChance then -- prevent high rates
 		tmp = cultivar.mutationRates["bias"] * BiasMutationChance
 		cultivar.mutationRates["bias"] = math.sqrt(tmp) -- geometric mean
+	end
+	if cultivar.mutationRates["node"] > NodeMutationChance then -- prevent high rates
+		tmp = cultivar.mutationRates["node"] * NodeMutationChance
+		cultivar.mutationRates["node"] = math.sqrt(tmp) -- geometric mean
+	end
+	if cultivar.mutationRates["LinkSynapse"] > SynapseLinkChance then -- prevent high rates
+		tmp = cultivar.mutationRates["LinkSynapse"] * SynapseLinkChance
+		cultivar.mutationRates["LinkSynapse"] = math.sqrt(tmp) -- geometric mean
+	end
+	if cultivar.mutationRates["MutateSynapse"] > MutateSynapseChance then -- prevent high rates
+		tmp = cultivar.mutationRates["MutateSynapse"] * MutateSynapseChance
+		cultivar.mutationRates["MutateSynapse"] = math.sqrt(tmp) -- geometric mean
 	end
 	if cultivar.mutationRates["step"] > StepSize then -- prevent high rates
 		tmp = cultivar.mutationRates["step"] * StepSize
@@ -711,16 +725,54 @@ end
 
 function reproduce(BaseGatunek)
 	local child = {}
+	local PotentialMates = {}
+	local BestDiff = 9037 * DeltaThreshold
 	local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 	local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
 	local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
 	local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-	local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility? 
-	if dd < (2 * DeltaThreshold) and CrossoverChance > math.random() then
-		child = crossover(genetic_material, blind_date) -- only if canidate seems compatible
-	else -- prefer inbreeding over incompatibility... 
+	local CompatibilityAttempts = math.ceil(GenerationGain / 5)
+	local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
+	local dw = DeltaWeights*weights(genetic_material, blind_date)
+	local DiffComposite = dd + dw
+
+	if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+		table.insert(PotentialMates, blind_date)
+		if DiffComposite < BestDiff then
+			BestDiff = dd
+		end
+	end
+
+	while CompatibilityAttempts > 0 do
+		genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
+		anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
+		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
+		dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
+		dw = DeltaWeights*weights(genetic_material, blind_date)
+		DiffComposite = dd + dw
+		if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+			if DiffComposite > 0 and DiffComposite < BestDiff then
+				table.insert(PotentialMates, blind_date)
+				BestDiff = dd
+			end
+		end
+		CompatibilityAttempts = CompatibilityAttempts - 1
+	end
+
+	-- prefer inbreeding over incompatibility... 
+	if next(PotentialMates) == nil then -- checking for empty table "the lua way" [tm]	
 		attractive_cousin = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		child = copyHotness(attractive_cousin) -- CLONE THE HOTNESS!!!
+	else
+		for mmm, iter_mate in pairs(PotentialMates) do
+			dd = DeltaDisjoint*disjoint(genetic_material, iter_mate) -- [in]compatibility?
+			dw = DeltaWeights*weights(genetic_material, iter_mate)
+			DiffComposite = dd + dw
+			if DiffComposite <= BestDiff then
+				child = crossover(genetic_material, iter_mate)
+				BestDiff = -9037 -- this one is most compatible
+			end
+		end
 	end
 
 	mutate(child) -- one spark of life plskthx
