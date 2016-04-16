@@ -544,7 +544,7 @@ function mutate(cultivar)
 		end
 		if tmpRate > mutationBaseRates[mutation] then
 			tmpGeo = tmpRate * mutationBaseRates[mutation]
-			tmpRate = math.sqrt(tmp) -- geometric mean
+			tmpRate = math.sqrt(tmpGeo) -- geometric mean
 		end
 		cultivar.mutationRates[mutation] = tmpRate
 	end
