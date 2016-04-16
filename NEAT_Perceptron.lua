@@ -41,26 +41,28 @@ CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 1 -- Prevent sudden growth spike
 GenerationGain = 75 -- Related to how quickly the population grows
 AntiGain = 25 -- Does more than the GenerationGain itself
-StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 243 -- be very careful modifying this value
+CutoffShift = 234 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
+StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+FiftyPercent = 1/2 -- 1 in 2 chance
+LogFifty = math.log(FiftyPercent)
+FiftyLogPasses = LogFifty / StaleGatunek
+PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.28 -- Different signal strength between various neurons.
-DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-EnableMutationChance = 0.007 -- Try to [re]enable 0.7% of dormant (inactive) genes
+EnableMutationChance = 0.012 -- Try to [re]enable 1.2% of dormant (inactive) genes
 DisableMutationChance = 0.01 -- 1% chance to disable currently active gene
-BiasMutationChance = 0.75
-SynapseLinkChance = 2.483
-NodeMutationChance = 2.169
+BiasMutationChance = 0.15
+SynapseLinkChance = 5.169
+NodeMutationChance = 0.2534
 MutateSynapseChance = 0.84
-StepSize = 0.0611
-PerturbChance = 0.94 -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
-
+StepSize = 0.04
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -148,9 +150,13 @@ function getInputs()
 	end
 
 	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
-	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
-	Nyoom = math.max(tmp, 0) -- walking backwards is ignored for score purposes
+	Nyoom = math.max(tmp, 0) -- sliding backwards is ignored by fitness algorithm
+
+	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
+	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
+
+	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
 	
 	if blockage == 5 or blockage == 1 then
@@ -160,13 +166,8 @@ function getInputs()
 	else
 		blockagecounter = blockagecounter - 1
 	end
-	
-	
-	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
-	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
 	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
-
 	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- we're stuck, handle it
 		if pool.EvaluatedFrames%6 > 2 then
 			inputs[#inputs] = -9037 -- Mission critical: Jump ASAP (huge bias)
@@ -448,10 +449,12 @@ function SynapseMutate(cultivar)
 
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
-		if PerturbChance > math.random() then
-			gene.weight = gene.weight + math.random() * step*2 - step
-		else
-			gene.weight = math.random()*4-2
+		if gene.enabled then -- dormant genes don't mutate
+			if PerturbChance > math.random() then
+				gene.weight = gene.weight + math.random() * step*2 - step
+			else
+				gene.weight = math.random()*4-2
+			end
 		end
 	end
 end
@@ -475,7 +478,7 @@ function LinkSynapse(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = Inputs
+		newLink.into = math.random((Inputs-1), Inputs) -- bias, and the one(s) before
 	end
 
 	if containsLink(cultivar.genes, newLink) then
