@@ -41,26 +41,28 @@ CurrentSwarm = 0 -- ACTUAL population size
 InfertilityScale = 1 -- Prevent sudden growth spike
 GenerationGain = 75 -- Related to how quickly the population grows
 AntiGain = 25 -- Does more than the GenerationGain itself
-StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
 RecentFitness = 0 -- false positive rejection
 CutoffShift = 243 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
+StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+FiftyPercent = 1/2 -- 1 in 2 chance
+LogFifty = math.log(FiftyPercent)
+FiftyLogPasses = LogFifty / StaleGatunek
+PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.28 -- Different signal strength between various neurons.
 DeltaThreshold = 0.2 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.9 -- 90% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-EnableMutationChance = 0.007 -- Try to [re]enable 0.7% of dormant (inactive) genes
+EnableMutationChance = 0.012 -- Try to [re]enable 1.2% of dormant (inactive) genes
 DisableMutationChance = 0.01 -- 1% chance to disable currently active gene
-BiasMutationChance = 0.75
-SynapseLinkChance = 2.483
-NodeMutationChance = 2.169
+BiasMutationChance = 0.15
+SynapseLinkChance = 5.169
+NodeMutationChance = 0.2534
 MutateSynapseChance = 0.84
-StepSize = 0.0611
-PerturbChance = 0.94 -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
-
+StepSize = 0.04
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -448,10 +450,12 @@ function SynapseMutate(cultivar)
 
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
-		if PerturbChance > math.random() then
-			gene.weight = gene.weight + math.random() * step*2 - step
-		else
-			gene.weight = math.random()*4-2
+		if gene.enabled then -- dormant genes don't mutate
+			if PerturbChance > math.random() then
+				gene.weight = gene.weight + math.random() * step*2 - step
+			else
+				gene.weight = math.random()*4-2
+			end
 		end
 	end
 end
