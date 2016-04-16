@@ -539,11 +539,11 @@ function mutate(cultivar)
 	OhNineSixFour = math.log(0.964)
 	OneOhTwoThree = math.log(1.023)
 	for mutation,rate in pairs(cultivar.mutationRates) do
-		tmpRate = math.random()
+		unHardcode = math.random()
 		if math.random(1,2) == 1 then
-			tmpRate = math.exp(OhNineSixFour*rate*tmpRate)
+			tmpRate = math.exp(OhNineSixFour * unHardcode) * rate
 		else
-			tmpRate = math.exp(OneOhTwoThree*rate*tmpRate)
+			tmpRate = math.exp(OneOhTwoThree * unHardcode) * rate
 		end
 		if tmpRate > mutationBaseRates[mutation] then
 			tmpGeo = tmpRate * mutationBaseRates[mutation]
