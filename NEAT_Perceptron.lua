@@ -56,13 +56,15 @@ DeltaWeights = 0.7 -- Different signal strength between various neurons.
 DeltaThreshold = 0.17929 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.47978 -- 47.978% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-EnableMutationChance = 0.017 -- Try to [re]enable 1.7% of dormant (inactive) genes
-DisableMutationChance = 0.019 -- 1.9% chance to disable currently active gene
-BiasMutationChance = 0.42
-SynapseLinkChance = 1.5
-NodeMutationChance = 0.46
-MutateSynapseChance = 0.939
-StepSize = 0.04
+tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dormant genes
+mutationBaseRates = {}
+mutationBaseRates["DormancyToggle"] = tmpDormancyNegation
+mutationBaseRates["DormancyInvert"] = tmpDormancyNegation
+mutationBaseRates["BiasMutation"] = 0.42
+mutationBaseRates["NodeMutation"] = 0.46
+mutationBaseRates["LinkSynapse"] = 1.5
+mutationBaseRates["MutateSynapse"] = 0.939
+mutationBaseRates["StepSize"] = 0.04
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -130,7 +132,6 @@ function getInputs()
 			if tile == 1 and marioY+dy < 0x1B0 then
 				inputs[#inputs] = 1
 			end
-
 			for i = 1,#sprites do
 				distx = math.abs(sprites[i]["x"] - (marioX+XShifted))
 				disty = math.abs(sprites[i]["y"] - (marioY+dy))
@@ -138,7 +139,6 @@ function getInputs()
 					inputs[#inputs] = -1
 				end
 			end
-
 			for i = 1,#extended do
 				distx = math.abs(extended[i]["x"] - (marioX+XShifted))
 				disty = math.abs(extended[i]["y"] - (marioY+dy))
@@ -148,7 +148,6 @@ function getInputs()
 			end
 		end
 	end
-
 	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
 	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
 	Nyoom = math.max(tmp, 0) -- sliding backwards is ignored by fitness algorithm
@@ -166,7 +165,6 @@ function getInputs()
 	else
 		blockagecounter = blockagecounter - 1
 	end
-
 	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
 	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- we're stuck, handle it
 		if pool.EvaluatedFrames%6 > 2 then
@@ -183,7 +181,6 @@ function getInputs()
 	else
 		inputs[#inputs] = 0
 	end
-
 	return inputs
 end
 
@@ -228,14 +225,9 @@ function newCritter()
 	critter.brain = {}
 	critter.maxneuron = 0
 	critter.mutationRates = {}
-	critter.mutationRates["enable"] = EnableMutationChance
-	critter.mutationRates["disable"] = DisableMutationChance
-	critter.mutationRates["bias"] = BiasMutationChance
-	critter.mutationRates["node"] = NodeMutationChance
-	critter.mutationRates["LinkSynapse"] = SynapseLinkChance
-	critter.mutationRates["MutateSynapse"] = MutateSynapseChance
-	critter.mutationRates["step"] = StepSize
-
+	for mutation,rate in pairs(mutationBaseRates) do
+		critter.mutationRates[mutation] = rate
+	end
 	return critter
 end
 
@@ -245,14 +237,9 @@ function copyHotness(billy)
 		table.insert(cultivar2.genes, copyGene(billy.genes[g]))
 	end
 	cultivar2.maxneuron = billy.maxneuron
-	cultivar2.mutationRates["enable"] = billy.mutationRates["enable"]
-	cultivar2.mutationRates["disable"] = billy.mutationRates["disable"]
-	cultivar2.mutationRates["bias"] = billy.mutationRates["bias"]
-	cultivar2.mutationRates["node"] = billy.mutationRates["node"]
-	cultivar2.mutationRates["LinkSynapse"] = billy.mutationRates["LinkSynapse"]
-	cultivar2.mutationRates["MutateSynapse"] = billy.mutationRates["MutateSynapse"]
-	cultivar2.mutationRates["step"] = billy.mutationRates["step"]
-
+	for mutation,rate in pairs(billy.mutationRates) do
+		cultivar2.mutationRates[mutation] = rate
+	end
 	return cultivar2
 end
 
@@ -303,11 +290,9 @@ function generateMind(cultivar)
 	for i=1,Inputs do
 		MeatyThinky.neurons[i] = newNeuron()
 	end
-
 	for o=1,Outputs do
 		MeatyThinky.neurons[MagicOffset+o] = newNeuron()
 	end
-
 	table.sort(cultivar.genes, function (a,b)
 		return (a.out < b.out)
 	end)
@@ -324,7 +309,6 @@ function generateMind(cultivar)
 			end
 		end
 	end
-
 	cultivar.brain = MeatyThinky -- NOT a meat brain O_O
 end
 
@@ -334,11 +318,9 @@ function evaluateThoughts(network, inputs)
 		console.writeline("Incorrect number of neural network inputs.")
 		return {}
 	end
-
 	for i=1,Inputs do
 		network.neurons[i].value = inputs[i]
 	end
-
 	for _,neuron in pairs(network.neurons) do
 		local istota = 0
 		for j = 1,#neuron.incoming do
@@ -346,12 +328,10 @@ function evaluateThoughts(network, inputs)
 			local other = network.neurons[incoming.into]
 			istota = istota + incoming.weight * other.value
 		end
-
 		if #neuron.incoming > 0 then
 			neuron.value = sigmoid(istota)
 		end
 	end
-
 	local outputs = {}
 	for o=1,Outputs do
 		local button = "P1 " .. ButtonNames[o]
@@ -361,7 +341,6 @@ function evaluateThoughts(network, inputs)
 			outputs[button] = false
 		end
 	end
-
 	return outputs
 end
 
@@ -372,7 +351,6 @@ function crossover(g1, g2)
 		g1 = g2
 		g2 = tempg
 	end
-
 	local child = newCritter()
 
 	local innovations2 = {}
@@ -380,7 +358,6 @@ function crossover(g1, g2)
 		local gene = g2.genes[i]
 		innovations2[gene.innovation] = gene
 	end
-
 	for i=1,#g1.genes do
 		local gene1 = g1.genes[i]
 		local gene2 = innovations2[gene1.innovation]
@@ -390,13 +367,11 @@ function crossover(g1, g2)
 			table.insert(child.genes, copyGene(gene1))
 		end
 	end
-
 	child.maxneuron = math.max(g1.maxneuron,g2.maxneuron)
 
 	for mutation,rate in pairs(g1.mutationRates) do
 		child.mutationRates[mutation] = rate
 	end
-
 	return child
 end
 
@@ -418,7 +393,6 @@ function randomNeuron(genes, nonInput)
 			neurons[genes[i].out] = true
 		end
 	end
-
 	local count = 0
 	for _,_ in pairs(neurons) do
 		count = count + 1
@@ -431,7 +405,6 @@ function randomNeuron(genes, nonInput)
 			return k
 		end
 	end
-
 	return 0
 end
 
@@ -445,7 +418,7 @@ function containsLink(genes, link)
 end
 
 function SynapseMutate(cultivar)
-	local step = cultivar.mutationRates["step"]
+	local step = cultivar.mutationRates["StepSize"]
 
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
@@ -474,13 +447,11 @@ function LinkSynapse(cultivar, forceBias)
 		neuron1 = neuron2
 		neuron2 = temp
 	end
-
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
 		newLink.into = math.random((Inputs-1), Inputs) -- bias, and the one(s) before
 	end
-
 	if containsLink(cultivar.genes, newLink) then
 		return
 	end
@@ -494,7 +465,6 @@ function nodeMutate(cultivar)
 	if #cultivar.genes == 0 then
 		return
 	end
-
 	cultivar.maxneuron = cultivar.maxneuron + 1
 
 	local gene = cultivar.genes[math.random(1,#cultivar.genes)]
@@ -522,70 +492,44 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	for _,gene in pairs(cultivar.genes) do
 		table.insert(candidates, gene) -- if a gene exists AT ALL
 	end
-
 	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
 		return
 	elseif GeneMaybeEnabled then
-		EnableChance = math.min(cultivar.mutationRates["disable"], cultivar.mutationRates["enable"]) -- whichever is lower
+		EnableChance = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
 		for c, iter_candidate in ipairs(candidates) do
 			if EnableChance > math.random() then
 				iter_candidate.enabled = GeneMaybeEnabled -- gene could already be enabled
 			end
 		end
 	else
-		DisableChance = math.max(cultivar.mutationRates["disable"], cultivar.mutationRates["enable"]) -- whichever is higher
+		DisableChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is higher
 		for c, iter_candidate in ipairs(candidates) do
 			if DisableChance > math.random() then
 				iter_candidate.enabled = GeneMaybeEnabled -- gene might already be disabled
 			end
 		end
 	end
-
 end
 
 function mutate(cultivar)
+	OhNineSixFour = math.log(0.964)
+	OneOhTwoThree = math.log(1.023)
 	for mutation,rate in pairs(cultivar.mutationRates) do
+		unHardcode = math.random()
 		if math.random(1,2) == 1 then
-			cultivar.mutationRates[mutation] = 0.964*rate
+			tmpRate = math.exp(OhNineSixFour * unHardcode) * rate
 		else
-			cultivar.mutationRates[mutation] = 1.023*rate
+			tmpRate = math.exp(OneOhTwoThree * unHardcode) * rate
 		end
+		if tmpRate > mutationBaseRates[mutation] then
+			tmpGeo = tmpRate * mutationBaseRates[mutation]
+			tmpRate = math.sqrt(tmpGeo) -- geometric mean
+		end
+		cultivar.mutationRates[mutation] = tmpRate
 	end
-
-	-- ITERATOR COULD BE USED FOR THIS, BUT WOULD REQUIRE A REFACTOR
-	if cultivar.mutationRates["enable"] > EnableMutationChance then -- prevent high rates
-		tmp = cultivar.mutationRates["enable"] * EnableMutationChance
-		cultivar.mutationRates["enable"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["disable"] < DisableMutationChance then -- prevent LOW rates (removing genes preferred)
-		tmp = cultivar.mutationRates["disable"] * DisableMutationChance
-		cultivar.mutationRates["disable"] = math.sqrt(tmp)
-	end
-	if cultivar.mutationRates["bias"] > BiasMutationChance then -- prevent high rates
-		tmp = cultivar.mutationRates["bias"] * BiasMutationChance
-		cultivar.mutationRates["bias"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["node"] > NodeMutationChance then -- prevent high rates
-		tmp = cultivar.mutationRates["node"] * NodeMutationChance
-		cultivar.mutationRates["node"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["LinkSynapse"] > SynapseLinkChance then -- prevent high rates
-		tmp = cultivar.mutationRates["LinkSynapse"] * SynapseLinkChance
-		cultivar.mutationRates["LinkSynapse"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["MutateSynapse"] > MutateSynapseChance then -- prevent high rates
-		tmp = cultivar.mutationRates["MutateSynapse"] * MutateSynapseChance
-		cultivar.mutationRates["MutateSynapse"] = math.sqrt(tmp) -- geometric mean
-	end
-	if cultivar.mutationRates["step"] > StepSize then -- prevent high rates
-		tmp = cultivar.mutationRates["step"] * StepSize
-		cultivar.mutationRates["step"] = math.sqrt(tmp) -- geometric mean
-	end
-
 	if cultivar.mutationRates["MutateSynapse"] > math.random() then
 		SynapseMutate(cultivar) -- neural interconnect signal strength (synapse) re-tune
 	end
-
 	local p = cultivar.mutationRates["LinkSynapse"]
 	while p > 0 do
 		if p > math.random() then
@@ -593,23 +537,20 @@ function mutate(cultivar)
 		end
 		p = p - 1
 	end
-
-	p = cultivar.mutationRates["bias"]
+	p = cultivar.mutationRates["BiasMutation"]
 	while p > 0 do
 		if p > math.random() then
 			LinkSynapse(cultivar, true) -- connection is forced to originate at bias node
 		end
 		p = p - 1
 	end
-
-	p = cultivar.mutationRates["node"]
+	p = cultivar.mutationRates["NodeMutation"]
 	while p > 0 do
 		if p > math.random() then
 			nodeMutate(cultivar)
 		end
 		p = p - 1
 	end
-
 	enableDisableMutate(cultivar, true)
 	enableDisableMutate(cultivar, false)
 
@@ -624,7 +565,6 @@ function disjoint(genes1, genes2)
 			i1[gene.innovation] = true
 		end
 	end
-
 	local i2 = {}
 	for i = 1,#genes2 do
 		local gene = genes2[i]
@@ -632,7 +572,6 @@ function disjoint(genes1, genes2)
 			i2[gene.innovation] = true
 		end
 	end
-
 	local disjointGenes = 0
 	for i = 1,#genes1 do
 		local gene = genes1[i]
@@ -642,7 +581,6 @@ function disjoint(genes1, genes2)
 			end
 		end
 	end
-
 	for i = 1,#genes2 do
 		local gene = genes2[i]
 		if gene.enabled then
@@ -651,7 +589,6 @@ function disjoint(genes1, genes2)
 			end
 		end
 	end
-
 	local n = math.max(#genes1, #genes2)
 
 	return disjointGenes / n
@@ -663,7 +600,6 @@ function weights(genes1, genes2)
 		local gene = genes2[i]
 		i2[gene.innovation] = gene
 	end
-
 	local istota = 0
 	local zgodny = 0
 	for i = 1,#genes1 do
@@ -674,7 +610,6 @@ function weights(genes1, genes2)
 			zgodny = zgodny + 1
 		end
 	end
-
 	return istota / zgodny
 end
 
@@ -703,7 +638,6 @@ function totalAverageFitness()
 	for g, iter_gatunek in ipairs(pool.Gatunki) do
 		total = total + iter_gatunek.averageFitness
 	end
-
 	return total
 end
 
@@ -742,7 +676,6 @@ function reproduce(BaseGatunek)
 			BestDiff = dd
 		end
 	end
-
 	while CompatibilityAttempts > 0 do
 		genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
@@ -758,7 +691,6 @@ function reproduce(BaseGatunek)
 		end
 		CompatibilityAttempts = CompatibilityAttempts - 1
 	end
-
 	-- prefer inbreeding over incompatibility... 
 	if next(PotentialMates) == nil then -- checking for empty table "the lua way" [tm]	
 		attractive_cousin = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
@@ -774,7 +706,6 @@ function reproduce(BaseGatunek)
 			end
 		end
 	end
-
 	mutate(child) -- one spark of life plskthx
 
 	return child -- this child is now an adult O_O
@@ -797,7 +728,6 @@ function removeStaleGatunki()
 			table.insert(survived, iter_gatunek)
 		end
 	end
-
 	pool.Gatunki = survived
 end
 
@@ -819,13 +749,11 @@ function removeWeakGatunki()
 			end
 		end
 	end
-
 	if next(survived) == nil then -- checking for empty table "the lua way" [tm]
 		local FreshGatunek = newGatunek() -- epic fail, replace with fresh n00b 
 		table.insert(FreshGatunek.cultivars, basicCritter())
 		table.insert(survived, FreshGatunek)
 	end
-
 	pool.Gatunki = survived
 end
 
@@ -859,7 +787,6 @@ function addToGatunki(child)
 			foundGatunek = true
 		end
 	end
-
 	if not foundGatunek then
 		local CreatedGatunek = newGatunek()
 		table.insert(CreatedGatunek.cultivars, child)
@@ -905,7 +832,6 @@ function newGeneration()
 			end
 		end
 	end
-
 	if next(children) == nil then
 		console.writeline("Stale generation")
 		while #pool.Gatunki <= SwarmLimit do -- generate 1 (one) critter even if we're at the limit
@@ -924,7 +850,6 @@ function newGeneration()
 			addToGatunki(reproduce(ticketed_gatunek)) -- this one probably has good genes
 		end
 	end
-
 	writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 end
 
@@ -971,7 +896,6 @@ function evaluateCurrent()
 
 	joypad.set(controller)
 end
-
 if pool == nil then
 	initializePool()
 end
@@ -1012,7 +936,6 @@ function displayCritter(cultivar)
 			i = i + 1
 		end
 	end
-
 		cell = {} -- Velocity vector (X-axis)
 		cell.x = 50+5*network.neurons[i].value
 		cell.y = 70+5*(BoxRadius+1)
@@ -1052,7 +975,6 @@ function displayCritter(cultivar)
 		end
 		gui.drawText(203, 39+9*o, ButtonNames[o], color, 9)
 	end
-
 	for n,neuron in pairs(network.neurons) do
 		cell = {}
 		if n > Inputs and n <= MagicOffset then
@@ -1062,7 +984,6 @@ function displayCritter(cultivar)
 			cells[n] = cell
 		end
 	end
-
 	for n=1,4 do
 		for _,gene in pairs(cultivar.genes) do
 			if gene.enabled then
@@ -1076,7 +997,6 @@ function displayCritter(cultivar)
 					if c1.x < 90 then
 						c1.x = 90
 					end
-
 					if c1.x > 220 then
 						c1.x = 220
 					end
@@ -1099,7 +1019,6 @@ function displayCritter(cultivar)
 			end
 		end
 	end
-
 	gui.drawBox(50-BoxRadius*5-3,70-BoxRadius*5-3,50+BoxRadius*5+2,70+BoxRadius*5+2,0xFFFFFFFF, 0x80808080)
 	for n,cell in pairs(cells) do
 		if n > Inputs or cell.value ~= 0 then
@@ -1122,7 +1041,6 @@ function displayCritter(cultivar)
 			if c1.value == 0 then
 				opacity = 0x77000000
 			end
-
 			local color = 0x80-math.floor(math.abs(sigmoid(gene.weight))*0x80)
 			if gene.weight > 0 then 
 				color = opacity + 0x8000 + 0x10000*color
@@ -1132,14 +1050,16 @@ function displayCritter(cultivar)
 			gui.drawLine(c1.x+1, c1.y, c2.x-1, c2.y, color)
 		end
 	end
-
 	gui.drawBox(49-Mario_Map_Offset,71,51-Mario_Map_Offset,78,0x00000000,0x80FF0000)
 
 	if forms.ischecked(showMutationRates) then
-		local pos = 100
+		local pos = 82
+		local sigFigured = 0
 		for mutation,rate in pairs(cultivar.mutationRates) do
-			gui.drawText(100, pos, mutation .. ": " .. rate, 0xFFFFFFFF, 10)
-			pos = pos + 8
+			sigFigured = math.floor(0.5 + 10000 * rate) / 10000
+			gui.drawText(85, pos, mutation .. ": ", 0xFFFFFFFF, 10)
+			gui.drawText(200, pos, sigFigured, 0xFFFFFFFF, 10)
+			pos = pos + 10
 		end
 	end
 end
@@ -1246,7 +1166,6 @@ function playTop()
 			end
 		end
 	end
-
 	pool.currentGatunek = maxg
 	pool.currentCultivar = maxc
 	pool.PeakFitness = PeakFitness
@@ -1258,7 +1177,6 @@ end
 function onExit()
 	forms.destroy(form)
 end
-
 writeFile("temp.pool")
 
 event.onexit(onExit)
@@ -1282,14 +1200,12 @@ while true do
 	if forms.ischecked(showBanner) then
 		gui.drawBox(0, 0, 300, 38, backgroundColor, backgroundColor)
 	end
-
 	local active_gatunek = pool.Gatunki[pool.currentGatunek]
 	local active_cultivar = active_gatunek.cultivars[pool.currentCultivar]
 
 	if forms.ischecked(showNetwork) then
 		displayCritter(active_cultivar)
 	end
-
 	evaluateCurrent() -- EVERY FRAME!!!
 
 	joypad.set(controller)
@@ -1325,15 +1241,12 @@ while true do
 			console.writeline("exception:  [0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. memory.readbyte(0x9D) .. "  -  [13D9]/" .. memory.readbyte(0x13D9))
 		end
 	end
-
-
 	timeout = timeout - 1
 
 	local timeoutBonus = math.floor(pool.EvaluatedFrames / 7.3)
 	if timeoutBonus < 1 then
 		timeoutBonus = 1 -- sanitized
 	end
-
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
 	pool.RealtimeFitness = 250 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.2145)
 
@@ -1352,7 +1265,6 @@ while true do
 			forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
 			writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
 		end
-
 		console.writeline("Gen " .. pool.generation .. " gatunek " .. pool.currentGatunek .. " cultivar " .. pool.currentCultivar .. " fitness: " .. fitness)
 		pool.currentGatunek = 1
 		pool.currentCultivar = 1
@@ -1361,7 +1273,6 @@ while true do
 		end
 		initializeRun()
 	end
-
 	if forms.ischecked(showBanner) then
 		gui.drawText(0, 0, "Gatunek #" .. pool.currentGatunek .. " ~> Cultivar #" .. pool.currentCultivar, 0xFFFFFFFF, 11)
 		gui.drawText(0, 12, "@" .. pool.generation .. " Avg: " .. math.floor(RecentFitness), 0xFFFFFFFF, 11)
@@ -1369,6 +1280,5 @@ while true do
 		gui.drawText(145, 12, "Peak: " .. math.floor(pool.PeakFitness), 0xFFFFFFFF, 11)
 		gui.drawText(123, 24, "Fitness: " .. pool.RealtimeFitness, 0xFFFFFFFF, 11)
 	end
-
 	emu.frameadvance();
 end
