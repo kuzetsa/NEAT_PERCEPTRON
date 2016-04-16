@@ -155,6 +155,8 @@ function getInputs()
 	
 	if blockage == 5 or blockage == 1 then
 		blockagecounter = 10
+	elseif blockagecounter <= 0 and GroundTouch ~= 0 then
+		blockagecounter = 0 -- prevent negative runaway
 	else
 		blockagecounter = blockagecounter - 1
 	end
@@ -164,11 +166,8 @@ function getInputs()
 	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
 
 	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
-	if GroundTouch ~= 0 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
-		inputs[#inputs] = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
-	elseif GroundTouch ~= 0 and RawSpeed < 0x31 and blockagecounter <= 0 then
-		inputs[#inputs] = -1 -- make it easier to jump (minor negative bias)
-	elseif blockage == 5 and GroundTouch ~= 0 and RawSpeed == 0 then
+
+	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- we're stuck, handle it
 		if pool.EvaluatedFrames%6 > 2 then
 			inputs[#inputs] = -9037 -- Mission critical: Jump ASAP (huge bias)
 		else
@@ -176,8 +175,10 @@ function getInputs()
 		end
 	elseif blockagecounter > 0 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
 		inputs[#inputs] = 1
-	elseif blockagecounter <= 0 and GroundTouch ~= 0 then
-		blockagecounter = 0 -- cleared the obstacle, probably, and we've landed
+	elseif GroundTouch ~= 0 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
+		inputs[#inputs] = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
+	elseif GroundTouch ~= 0 and RawSpeed < 0x31 and blockagecounter <= 0 then
+		inputs[#inputs] = -0.1 -- make it easier to jump (minor negative bias)
 	else
 		inputs[#inputs] = 0
 	end
