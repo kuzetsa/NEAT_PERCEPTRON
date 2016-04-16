@@ -230,14 +230,9 @@ function newCritter()
 	critter.brain = {}
 	critter.maxneuron = 0
 	critter.mutationRates = {}
-	critter.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]
-	critter.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyInvert"]
-	critter.mutationRates["BiasMutation"] = mutationBaseRates["BiasMutation"]
-	critter.mutationRates["NodeMutation"] = mutationBaseRates["NodeMutation"]
-	critter.mutationRates["LinkSynapse"] = mutationBaseRates["LinkSynapse"]
-	critter.mutationRates["MutateSynapse"] = mutationBaseRates["MutateSynapse"]
-	critter.mutationRates["StepSize"] = mutationBaseRates["StepSize"]
-
+	for mutation,rate in pairs(mutationBaseRates) do
+		critter.mutationRates[mutation] = mutationBaseRates[mutation]
+	end
 	return critter
 end
 
@@ -247,14 +242,9 @@ function copyHotness(billy)
 		table.insert(cultivar2.genes, copyGene(billy.genes[g]))
 	end
 	cultivar2.maxneuron = billy.maxneuron
-	cultivar2.mutationRates["DormancyToggle"] = billy.mutationRates["DormancyToggle"]
-	cultivar2.mutationRates["DormancyInvert"] = billy.mutationRates["DormancyInvert"]
-	cultivar2.mutationRates["BiasMutation"] = billy.mutationRates["BiasMutation"]
-	cultivar2.mutationRates["NodeMutation"] = billy.mutationRates["NodeMutation"]
-	cultivar2.mutationRates["LinkSynapse"] = billy.mutationRates["LinkSynapse"]
-	cultivar2.mutationRates["MutateSynapse"] = billy.mutationRates["MutateSynapse"]
-	cultivar2.mutationRates["StepSize"] = billy.mutationRates["StepSize"]
-
+	for mutation,rate in pairs(billy.mutationRates) do
+		cultivar2.mutationRates[mutation] = billy.mutationRates[mutation]
+	end
 	return cultivar2
 end
 
