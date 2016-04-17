@@ -38,9 +38,9 @@ NyoomCumulator = 0
 blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
-InfertilityScale = 1 -- Prevent sudden growth spike
-GenerationGain = 75 -- Related to how quickly the population grows
-AntiGain = 25 -- Does more than the GenerationGain itself
+GenerationGain = 555 -- Related to how quickly the population grows
+AntiGain = 141 -- Does more than the GenerationGain itself
+InfertilityScale = 3 -- Prevent sudden growth spike
 RecentFitness = 0 -- false positive rejection
 CutoffShift = 234 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
@@ -53,8 +53,8 @@ PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes 
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.7 -- Different signal strength between various neurons.
-DeltaThreshold = 0.17929 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.47978 -- 47.978% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.27 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.45 -- 45% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dormant genes
 mutationBaseRates = {}
@@ -665,7 +665,7 @@ function reproduce(BaseGatunek)
 	local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
 	local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
 	local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-	local CompatibilityAttempts = math.ceil(GenerationGain / 5)
+	local CompatibilityAttempts = math.ceil(GenerationGain / 3)
 	local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 	local dw = DeltaWeights*weights(genetic_material, blind_date)
 	local DiffComposite = dd + dw
