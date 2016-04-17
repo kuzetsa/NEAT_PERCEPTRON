@@ -30,7 +30,7 @@ InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 Forward_Looking = math.floor(0.8 * 16 * BoxRadius) -- vision tweak
 Mario_Map_Offset = math.floor(0.8 * 5 * BoxRadius) -- debug window tweak
 
-Inputs = InputSize+3 -- bias cell, plus a special "jump" perceptronm plus speed cell
+Inputs = InputSize+4 -- bias cell, a special "obstacle jump" perceptron, X-speed, and "Max Speed" trigger
 Outputs = #ButtonNames
 
 Nyoom = 0
@@ -60,7 +60,7 @@ tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dorman
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation
-mutationBaseRates["BiasMutation"] = 0.42
+mutationBaseRates["BiasMutation"] = 0.55
 mutationBaseRates["NodeMutation"] = 0.76
 mutationBaseRates["LinkSynapse"] = 1.67
 mutationBaseRates["MutateSynapse"] = 0.939
@@ -157,6 +157,8 @@ function getInputs()
 
 	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
 	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
+	local JumpFlag = 0
+	local FastFlag = 0
 	
 	if blockage == 5 or blockage == 1 then
 		blockagecounter = 10
@@ -165,22 +167,23 @@ function getInputs()
 	else
 		blockagecounter = blockagecounter - 1
 	end
-	inputs[#inputs+1] = 0 -- Jump triggers (and hold jump button)
 	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- we're stuck, handle it
 		if pool.EvaluatedFrames%6 > 2 then
-			inputs[#inputs] = -9037 -- Mission critical: Jump ASAP (huge bias)
+			JumpFlag = -9037 -- Mission critical: Jump ASAP (huge bias)
 		else
-			inputs[#inputs] = 1 -- We're stuck, so trigger a jump.
+			JumpFlag = 1 -- We're stuck, so trigger a jump.
 		end
 	elseif blockagecounter > 0 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
-		inputs[#inputs] = 1
+		JumpFlag = 1
 	elseif GroundTouch ~= 0 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
-		inputs[#inputs] = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
+		FastFlag = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
 	elseif GroundTouch ~= 0 and RawSpeed < 0x31 and blockagecounter <= 0 then
-		inputs[#inputs] = -0.1 -- make it easier to jump (minor negative bias)
-	else
-		inputs[#inputs] = 0
+		FastFlag = -0.1 -- make it easier to jump (minor negative bias)
 	end
+	inputs[#inputs+1] = 0 -- High speed trigger
+	inputs[#inputs] = FastFlag
+	inputs[#inputs+1] = 0 -- Obstacle Jump trigger
+	inputs[#inputs] = JumpFlag
 	return inputs
 end
 
@@ -450,7 +453,7 @@ function LinkSynapse(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = math.random((Inputs-1), Inputs) -- bias, and the one(s) before
+		newLink.into = math.random((Inputs-2), Inputs) -- bias, and the two entries before
 	end
 	if containsLink(cultivar.genes, newLink) then
 		return
