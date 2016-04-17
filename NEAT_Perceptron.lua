@@ -53,7 +53,7 @@ PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes 
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.7 -- Different signal strength between various neurons.
-DeltaThreshold = 0.27 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.37 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.45 -- 45% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dormant genes
@@ -670,7 +670,7 @@ function reproduce(BaseGatunek)
 	local dw = DeltaWeights*weights(genetic_material, blind_date)
 	local DiffComposite = dd + dw
 
-	if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+	if DiffComposite < (3 * DeltaThreshold) and CrossoverChance > math.random() then
 		if DiffComposite > 0 and DiffComposite < BestDiff then
 			table.insert(PotentialMates, blind_date)
 			BestDiff = dd
@@ -683,7 +683,7 @@ function reproduce(BaseGatunek)
 		dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		dw = DeltaWeights*weights(genetic_material, blind_date)
 		DiffComposite = dd + dw
-		if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+		if DiffComposite < (3 * DeltaThreshold) and CrossoverChance > math.random() then
 			if DiffComposite > 0 and DiffComposite < BestDiff then
 				table.insert(PotentialMates, blind_date)
 				BestDiff = dd
