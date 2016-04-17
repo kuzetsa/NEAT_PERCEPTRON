@@ -38,9 +38,9 @@ NyoomCumulator = 0
 blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
-InfertilityScale = 1 -- Prevent sudden growth spike
-GenerationGain = 75 -- Related to how quickly the population grows
-AntiGain = 25 -- Does more than the GenerationGain itself
+GenerationGain = 555 -- Related to how quickly the population grows
+AntiGain = 141 -- Does more than the GenerationGain itself
+InfertilityScale = 3 -- Prevent sudden growth spike
 RecentFitness = 0 -- false positive rejection
 CutoffShift = 234 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
@@ -53,18 +53,18 @@ PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes 
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.7 -- Different signal strength between various neurons.
-DeltaThreshold = 0.17929 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.47978 -- 47.978% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.37 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.45 -- 45% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dormant genes
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation
 mutationBaseRates["BiasMutation"] = 0.42
-mutationBaseRates["NodeMutation"] = 0.46
-mutationBaseRates["LinkSynapse"] = 1.5
+mutationBaseRates["NodeMutation"] = 0.76
+mutationBaseRates["LinkSynapse"] = 1.67
 mutationBaseRates["MutateSynapse"] = 0.939
-mutationBaseRates["StepSize"] = 0.04
+mutationBaseRates["StepSize"] = 0.35
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -512,14 +512,14 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 end
 
 function mutate(cultivar)
-	OhNineSixFour = math.log(0.964)
-	OneOhTwoThree = math.log(1.023)
+	OhEightSixEight = math.log(0.868)
+	OneOneThreeFive = math.log(1.135)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		unHardcode = math.random()
 		if math.random(1,2) == 1 then
-			tmpRate = math.exp(OhNineSixFour * unHardcode) * rate
+			tmpRate = math.exp(OhEightSixEight * unHardcode) * rate
 		else
-			tmpRate = math.exp(OneOhTwoThree * unHardcode) * rate
+			tmpRate = math.exp(OneOneThreeFive * unHardcode) * rate
 		end
 		if tmpRate > mutationBaseRates[mutation] then
 			tmpGeo = tmpRate * mutationBaseRates[mutation]
@@ -665,12 +665,12 @@ function reproduce(BaseGatunek)
 	local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
 	local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
 	local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-	local CompatibilityAttempts = math.ceil(GenerationGain / 5)
+	local CompatibilityAttempts = math.ceil(GenerationGain / 3)
 	local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 	local dw = DeltaWeights*weights(genetic_material, blind_date)
 	local DiffComposite = dd + dw
 
-	if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+	if DiffComposite < (3 * DeltaThreshold) and CrossoverChance > math.random() then
 		if DiffComposite > 0 and DiffComposite < BestDiff then
 			table.insert(PotentialMates, blind_date)
 			BestDiff = dd
@@ -683,7 +683,7 @@ function reproduce(BaseGatunek)
 		dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		dw = DeltaWeights*weights(genetic_material, blind_date)
 		DiffComposite = dd + dw
-		if DiffComposite < (2 * DeltaThreshold) and CrossoverChance > math.random() then
+		if DiffComposite < (3 * DeltaThreshold) and CrossoverChance > math.random() then
 			if DiffComposite > 0 and DiffComposite < BestDiff then
 				table.insert(PotentialMates, blind_date)
 				BestDiff = dd
@@ -740,7 +740,7 @@ function removeWeakGatunki()
 	end)
 
 	for g, iter_gatunek in ipairs(pool.Gatunki) do
-		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.761
+		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.916
 		survive_critter = breeding_pop_gain * iter_gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if iter_gatunek.averageFitness > 1 then
