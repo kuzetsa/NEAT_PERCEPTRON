@@ -61,8 +61,8 @@ mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation
 mutationBaseRates["BiasMutation"] = 0.42
-mutationBaseRates["NodeMutation"] = 0.46
-mutationBaseRates["LinkSynapse"] = 1.5
+mutationBaseRates["NodeMutation"] = 0.76
+mutationBaseRates["LinkSynapse"] = 1.67
 mutationBaseRates["MutateSynapse"] = 0.939
 mutationBaseRates["StepSize"] = 0.35
 
