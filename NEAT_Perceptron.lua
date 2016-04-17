@@ -38,12 +38,13 @@ NyoomCumulator = 0
 blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
-SpareMajority = 198.389 -- must be less than 200... hardcoded in removeWeakGatunki()
+SpareMajority = 254.65 -- must be less than 256... hardcoded in removeWeakGatunki()
 GenerationGain = 555 -- Related to how quickly the population grows
 AntiGain = 111 -- Does more than the GenerationGain itself
 InfertilityScale = 4 -- Prevent sudden growth spike
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 240 -- be very careful modifying this value
+CutoffShift = 239.0690 -- be very careful modifying this value
+SurvivorTicket = 9
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
 StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
@@ -713,7 +714,7 @@ function removeWeakGatunki()
 	end)
 
 	for g, iter_gatunek in ipairs(pool.Gatunki) do
-		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - SpareMajority
+		breeding_pop_gain = (256 / math.exp(0.0015 * current_pass / GenerationGain)) - SpareMajority
 		survive_critter = breeding_pop_gain * iter_gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if iter_gatunek.averageFitness > 1 then
@@ -791,7 +792,9 @@ function newGeneration()
 			breed = math.floor(math.max(math.sqrt(55555 * thirdroot), CutoffShift) - CutoffShift)
 			if breed > 0 then -- "breeding tickets"
 				GeneRank = 1.7 - (2.5 * g / CurrentSwarm) -- FIFO ranking
-				iter_gatunek.staleness = 0 -- stale implies BELOW average
+				if breed >= SurvivorTicket then -- stale implies BELOW average
+					iter_gatunek.staleness = 0
+				end
 				for i=1,breed do -- Make babies, based on the score
 					if i == 1 then -- first one is guaranteed
 						table.insert(children, iter_gatunek)
