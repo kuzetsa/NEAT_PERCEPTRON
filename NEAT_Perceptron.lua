@@ -30,7 +30,7 @@ InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 Forward_Looking = math.floor(0.8 * 16 * BoxRadius) -- vision tweak
 Mario_Map_Offset = math.floor(0.8 * 5 * BoxRadius) -- debug window tweak
 
-Inputs = InputSize+4 -- bias cell, a special "obstacle jump" perceptron, X-speed, and "Max Speed" trigger
+Inputs = InputSize+1 -- extra spot is for the bias cell
 Outputs = #ButtonNames
 
 Nyoom = 0
@@ -53,19 +53,19 @@ LogPasses = LogSevenHundred / StaleGatunek
 PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
-DeltaWeights = 0.56 -- Different signal strength between various neurons.
-DeltaThreshold = 0.57 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaWeights = 0.5 -- Different signal strength between various neurons.
+DeltaThreshold = 0.6 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.8 -- 80% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-tmpDormancyNegation = 0.10 -- STARTING rate: disable / [re]enable 10% of active/dormant genes
+tmpDormancyNegation = 0.05 -- STARTING rate: disable / [re]enable 5% of active/dormant genes
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation -- this value changes over time
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation -- changes too, but differently
-mutationBaseRates["BiasMutation"] = 0.55
-mutationBaseRates["NodeMutation"] = 0.86
+mutationBaseRates["BiasMutation"] = 0.4
+mutationBaseRates["NodeMutation"] = 0.7
 mutationBaseRates["LinkSynapse"] = 1.9
 mutationBaseRates["MutateSynapse"] = 0.6
-mutationBaseRates["StepSize"] = 0.35
+mutationBaseRates["StepSize"] = 0.25
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -152,39 +152,6 @@ function getInputs()
 	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
 	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
 	Nyoom = math.max(tmp, 0) -- sliding backwards is ignored by fitness algorithm
-
-	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
-	inputs[#inputs] = tmp -- potentially used for biassing neural net :)
-
-	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
-	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
-	local JumpFlag = 0
-	local FastFlag = 0
-	
-	if blockage == 5 or blockage == 1 then
-		blockagecounter = 10
-	elseif blockagecounter <= 0 and GroundTouch ~= 0 then
-		blockagecounter = 0 -- prevent negative runaway
-	else
-		blockagecounter = blockagecounter - 1
-	end
-	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- we're stuck, handle it
-		if pool.EvaluatedFrames%6 > 2 then
-			JumpFlag = -9037 -- Mission critical: Jump ASAP (huge bias)
-		else
-			JumpFlag = 1 -- We're stuck, so trigger a jump.
-		end
-	elseif blockagecounter > 0 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
-		JumpFlag = 1
-	elseif GroundTouch ~= 0 and RawSpeed >= 0x31 then -- on the ground, traveling at "max" (high) speed
-		FastFlag = 1 -- can jump and maintain speed, so generate a "jumping is good" signal
-	elseif GroundTouch ~= 0 and RawSpeed < 0x31 and blockagecounter <= 0 then
-		FastFlag = -0.1 -- make it easier to jump (minor negative bias)
-	end
-	inputs[#inputs+1] = 0 -- High speed trigger
-	inputs[#inputs] = FastFlag
-	inputs[#inputs+1] = 0 -- Obstacle Jump trigger
-	inputs[#inputs] = JumpFlag
 	return inputs
 end
 
@@ -454,7 +421,7 @@ function LinkSynapse(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = math.random((Inputs-2), Inputs) -- bias, and the two entries before
+		newLink.into = Inputs -- the last one is the bias node
 	end
 	if containsLink(cultivar.genes, newLink) then
 		return
@@ -928,7 +895,6 @@ end
 function displayCritter(cultivar)
 	local network = cultivar.brain -- artificial neural network
 	local cells = {}
-	local skiplast = 0
 	local blacken = 0
 	local i = 1
 	local cell = {}
@@ -941,25 +907,6 @@ function displayCritter(cultivar)
 			cells[i] = cell
 			i = i + 1
 		end
-	end
-		cell = {} -- Velocity vector (X-axis)
-		cell.x = 50+5*network.neurons[i].value
-		cell.y = 70+5*(BoxRadius+1)
-		blacken = math.abs(network.neurons[i].value / 5)
-		if blacken < 0.1 then
-			blacken = -1
-		end
-		cell.value = blacken -- zero handler for display
-		cells[i] = cell
-		i = i + 1
-
-	for skiplast =i,(Inputs-1) do -- Automagically knows how many more perceptron!!!
-		cell = {}
-		cell.x = 50+5*(BoxRadius+1)
-		cell.y = 70+5*(skiplast-(i+BoxRadius))
-		cell.value = network.neurons[skiplast].value
-		cells[skiplast] = cell
-
 	end
 	local biasCell = {}
 	biasCell.x = 80
