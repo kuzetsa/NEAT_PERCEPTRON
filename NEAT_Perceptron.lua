@@ -54,17 +54,17 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.56 -- Different signal strength between various neurons.
-DeltaThreshold = 0.37 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.45 -- 45% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.57 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-tmpDormancyNegation = 0.018 -- Try to disable / [re]enable 1.7% of active/dormant genes
+tmpDormancyNegation = 0.10 -- STARTING rate: disable / [re]enable 10% of active/dormant genes
 mutationBaseRates = {}
-mutationBaseRates["DormancyToggle"] = tmpDormancyNegation
-mutationBaseRates["DormancyInvert"] = tmpDormancyNegation
+mutationBaseRates["DormancyToggle"] = tmpDormancyNegation -- this value changes over time
+mutationBaseRates["DormancyInvert"] = tmpDormancyNegation -- changes too, but differently
 mutationBaseRates["BiasMutation"] = 0.55
-mutationBaseRates["NodeMutation"] = 0.76
-mutationBaseRates["LinkSynapse"] = 1.67
-mutationBaseRates["MutateSynapse"] = 0.939
+mutationBaseRates["NodeMutation"] = 0.86
+mutationBaseRates["LinkSynapse"] = 1.9
+mutationBaseRates["MutateSynapse"] = 0.6
 mutationBaseRates["StepSize"] = 0.35
 
 StatusRegisterPrimary = 0x42
@@ -555,9 +555,8 @@ function mutate(cultivar)
 		end
 		p = p - 1
 	end
-	enableDisableMutate(cultivar, true)
 	enableDisableMutate(cultivar, false)
-
+	enableDisableMutate(cultivar, true)
 
 end
 
@@ -662,41 +661,45 @@ function cullCultivar()
 end
 
 function reproduce(BaseGatunek)
-	local child = {}
 	local PotentialMates = {}
-	local BestDiff = 9037 * DeltaThreshold
-	local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
-	local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
-	local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
-	local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-	local CompatibilityAttempts = math.ceil(GenerationGain / 3)
-	local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
-	local dw = DeltaWeights*weights(genetic_material, blind_date)
-	local DiffComposite = dd + dw
-
-	if DiffComposite < (3 * DeltaThreshold) and CrossoverChance > math.random() then
-		if DiffComposite > 0 and DiffComposite < BestDiff then
-			table.insert(PotentialMates, blind_date)
-			BestDiff = dd
-		end
-	end
-	while CompatibilityAttempts > 0 do
-		genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
-		anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
-		blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-		dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
-		dw = DeltaWeights*weights(genetic_material, blind_date)
-		DiffComposite = dd + dw
-		if DiffComposite < (3 * DeltaThreshold) and CrossoverChance > math.random() then
+	local child = {}
+	local RequireClone = false
+	if CrossoverChance > math.random() then
+		local BestDiff = 9037 * DeltaThreshold
+		local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
+		local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
+		local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
+		local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
+		local CompatibilityAttempts = math.ceil(GenerationGain / 8)
+		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
+		local dw = DeltaWeights*weights(genetic_material, blind_date)
+		local DiffComposite = dd + dw
+		if DiffComposite < (3 * DeltaThreshold) then
 			if DiffComposite > 0 and DiffComposite < BestDiff then
 				table.insert(PotentialMates, blind_date)
 				BestDiff = dd
 			end
 		end
-		CompatibilityAttempts = CompatibilityAttempts - 1
+		while CompatibilityAttempts > 0 do
+			genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
+			anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
+			blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
+			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
+			dw = DeltaWeights*weights(genetic_material, blind_date)
+			DiffComposite = dd + dw
+			if DiffComposite < (3 * DeltaThreshold) then
+				if DiffComposite > 0 and DiffComposite < BestDiff then
+					table.insert(PotentialMates, blind_date)
+					BestDiff = dd
+				end
+			end
+			CompatibilityAttempts = CompatibilityAttempts - 1
+		end
+	else
+		RequireClone = true
 	end
 	-- prefer inbreeding over incompatibility... 
-	if next(PotentialMates) == nil then -- checking for empty table "the lua way" [tm]	
+	if next(PotentialMates) == nil or RequireClone then
 		attractive_cousin = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		child = copyHotness(attractive_cousin) -- CLONE THE HOTNESS!!!
 	else
@@ -711,7 +714,6 @@ function reproduce(BaseGatunek)
 		end
 	end
 	mutate(child) -- one spark of life plskthx
-
 	return child -- this child is now an adult O_O
 end
 
