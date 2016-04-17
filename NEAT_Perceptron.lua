@@ -64,7 +64,7 @@ mutationBaseRates["BiasMutation"] = 0.42
 mutationBaseRates["NodeMutation"] = 0.46
 mutationBaseRates["LinkSynapse"] = 1.5
 mutationBaseRates["MutateSynapse"] = 0.939
-mutationBaseRates["StepSize"] = 0.04
+mutationBaseRates["StepSize"] = 0.35
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -512,14 +512,14 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 end
 
 function mutate(cultivar)
-	OhNineSixFour = math.log(0.964)
-	OneOhTwoThree = math.log(1.023)
+	OhEightSixEight = math.log(0.868)
+	OneOneThreeFive = math.log(1.135)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		unHardcode = math.random()
 		if math.random(1,2) == 1 then
-			tmpRate = math.exp(OhNineSixFour * unHardcode) * rate
+			tmpRate = math.exp(OhEightSixEight * unHardcode) * rate
 		else
-			tmpRate = math.exp(OneOhTwoThree * unHardcode) * rate
+			tmpRate = math.exp(OneOneThreeFive * unHardcode) * rate
 		end
 		if tmpRate > mutationBaseRates[mutation] then
 			tmpGeo = tmpRate * mutationBaseRates[mutation]
