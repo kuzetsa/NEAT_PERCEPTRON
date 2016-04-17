@@ -38,21 +38,22 @@ NyoomCumulator = 0
 blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
+SpareMajority = 198.389 -- must be less than 200... hardcoded in removeWeakGatunki()
 GenerationGain = 555 -- Related to how quickly the population grows
-AntiGain = 141 -- Does more than the GenerationGain itself
-InfertilityScale = 3 -- Prevent sudden growth spike
+AntiGain = 111 -- Does more than the GenerationGain itself
+InfertilityScale = 4 -- Prevent sudden growth spike
 RecentFitness = 0 -- false positive rejection
-CutoffShift = 234 -- be very careful modifying this value
+CutoffShift = 240 -- be very careful modifying this value
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
-StaleGatunek = 25 -- Assume unbreedable if the rank stays low (discard rubbish genes)
-FiftyPercent = 1/2 -- 1 in 2 chance
-LogFifty = math.log(FiftyPercent)
-FiftyLogPasses = LogFifty / StaleGatunek
-PerturbChance = math.exp(FiftyLogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
+StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+SevenPercent = 7/100 -- 7 in 100 chance
+LogSevenHundred = math.log(SevenPercent)
+LogPasses = LogSevenHundred / StaleGatunek
+PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
-DeltaWeights = 0.7 -- Different signal strength between various neurons.
+DeltaWeights = 0.56 -- Different signal strength between various neurons.
 DeltaThreshold = 0.37 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.45 -- 45% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
@@ -743,7 +744,7 @@ function removeWeakGatunki()
 	end)
 
 	for g, iter_gatunek in ipairs(pool.Gatunki) do
-		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.916
+		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - SpareMajority
 		survive_critter = breeding_pop_gain * iter_gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if iter_gatunek.averageFitness > 1 then
