@@ -740,7 +740,7 @@ function removeWeakGatunki()
 	end)
 
 	for g, iter_gatunek in ipairs(pool.Gatunki) do
-		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.761
+		breeding_pop_gain = (200 / math.exp(0.004 * current_pass / GenerationGain)) - 198.916
 		survive_critter = breeding_pop_gain * iter_gatunek.averageFitness / RecentFitness
 		if survive_critter > math.random() then
 			if iter_gatunek.averageFitness > 1 then
