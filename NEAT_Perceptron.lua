@@ -1018,7 +1018,7 @@ function displayCritter(cultivar)
 	gui.drawBox(49-Mario_Map_Offset,71,51-Mario_Map_Offset,78,0x00000000,0x80FF0000)
 
 	if forms.ischecked(showMutationRates) then
-		local pos = 82
+		local pos = 100
 		local sigFigured = 0
 		for mutation,rate in pairs(cultivar.mutationRates) do
 			sigFigured = math.floor(0.5 + 10000 * rate) / 10000
