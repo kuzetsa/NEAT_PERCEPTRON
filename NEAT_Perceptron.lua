@@ -38,7 +38,7 @@ NyoomCumulator = 0
 blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
-SpareMajority = 254.65 -- must be less than 256... hardcoded in removeWeakGatunki()
+SpareMajority = 254.35 -- must be less than 256... hardcoded in removeWeakGatunki()
 GenerationGain = 555 -- Related to how quickly the population grows
 AntiGain = 111 -- Does more than the GenerationGain itself
 InfertilityScale = 4 -- Prevent sudden growth spike
@@ -56,7 +56,7 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
 DeltaThreshold = 0.6 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.8 -- 80% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+CrossoverChance = 0.7 -- 70% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.05 -- STARTING rate: disable / [re]enable 5% of active/dormant genes
 mutationBaseRates = {}
@@ -633,7 +633,7 @@ function reproduce(BaseGatunek)
 	local child = {}
 	local RequireClone = false
 	if CrossoverChance > math.random() then
-		local BestDiff = 9037 * DeltaThreshold
+		local WorstDiff = 0
 		local genetic_material = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
 		local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
@@ -642,10 +642,10 @@ function reproduce(BaseGatunek)
 		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		local dw = DeltaWeights*weights(genetic_material, blind_date)
 		local DiffComposite = dd + dw
-		if DiffComposite < (3 * DeltaThreshold) then
-			if DiffComposite > 0 and DiffComposite < BestDiff then
+		if DiffComposite < (2 * DeltaThreshold) then
+			if DiffComposite > 0 and DiffComposite > WorstDiff then
 				table.insert(PotentialMates, blind_date)
-				BestDiff = dd
+				WorstDiff = dd
 			end
 		end
 		while CompatibilityAttempts > 0 do
@@ -655,10 +655,10 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, blind_date)
 			DiffComposite = dd + dw
-			if DiffComposite < (3 * DeltaThreshold) then
-				if DiffComposite > 0 and DiffComposite < BestDiff then
+			if DiffComposite < (2 * DeltaThreshold) then
+				if DiffComposite > 0 and DiffComposite > WorstDiff then
 					table.insert(PotentialMates, blind_date)
-					BestDiff = dd
+					WorstDiff = dd
 				end
 			end
 			CompatibilityAttempts = CompatibilityAttempts - 1
@@ -666,7 +666,7 @@ function reproduce(BaseGatunek)
 	else
 		RequireClone = true
 	end
-	-- prefer inbreeding over incompatibility... 
+	-- prefer diversity not inbreeding, and prefer cloning rather than severe incompatibility
 	if next(PotentialMates) == nil or RequireClone then
 		attractive_cousin = BaseGatunek.cultivars[math.random(1, #BaseGatunek.cultivars)]
 		child = copyHotness(attractive_cousin) -- CLONE THE HOTNESS!!!
@@ -675,9 +675,9 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, iter_mate) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, iter_mate)
 			DiffComposite = dd + dw
-			if DiffComposite <= BestDiff then
+			if DiffComposite >= WorstDiff then
 				child = crossover(genetic_material, iter_mate)
-				BestDiff = -9037 -- this one is most compatible
+				WorstDiff = 9037 -- this is outside of range
 			end
 		end
 	end
