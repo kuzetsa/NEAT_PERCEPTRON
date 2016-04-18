@@ -66,7 +66,7 @@ mutationBaseRates["BiasMutation"] = 0.4
 mutationBaseRates["NodeMutation"] = 0.7
 mutationBaseRates["LinkSynapse"] = 1.9
 mutationBaseRates["MutateSynapse"] = 0.6
-mutationBaseRates["StepSize"] = 0.25
+mutationBaseRates["StepSize"] = 0.16
 
 StatusRegisterPrimary = 0x42
 StatusRegisterSecondary = 0x42
@@ -398,7 +398,7 @@ function SynapseMutate(cultivar)
 			if PerturbChance > math.random() then
 				gene.weight = gene.weight + math.random() * step*2 - step
 			else
-				gene.weight = math.random()*4-2
+				gene.weight = math.random()*2.832-1.416
 			end
 		end
 	end
@@ -462,24 +462,24 @@ end
 function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	local candidates = {}
 	for _,gene in pairs(cultivar.genes) do
-		table.insert(candidates, gene) -- if a gene exists AT ALL
+		if gene.enabled == not GeneMaybeEnabled then
+			table.insert(candidates, gene)
+		end
 	end
 	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
 		return
 	elseif GeneMaybeEnabled then
-		EnableChance = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
-		for c, iter_candidate in ipairs(candidates) do
-			if EnableChance > math.random() then
-				iter_candidate.enabled = GeneMaybeEnabled -- gene could already be enabled
-			end
-		end
+		FlipChance = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
 	else
-		DisableChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is higher
-		for c, iter_candidate in ipairs(candidates) do
-			if DisableChance > math.random() then
-				iter_candidate.enabled = GeneMaybeEnabled -- gene might already be disabled
-			end
+		FlipChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is higher
+	end
+	FlipCount = FlipChance * Inputs
+	while FlipCount > 0 do
+		if FlipCount > math.random() then
+			gene = candidates[math.random(1,#candidates)]
+			gene.enabled = not gene.enabled
 		end
+		FlipCount = FlipCount - 1
 	end
 end
 
