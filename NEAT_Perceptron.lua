@@ -16,7 +16,7 @@ Filename = "DP1.state" -- or change the filename on this line. Either way is fin
 -- My license for this fork is LGPL3, but SethBling has some legal rights too...
 -- SethBling, please contact @kuzetsa on twitter I'll do a full rewrite if needed
 
-ButtonNames = { "B", "Y", "Right" } -- Spin jump is "A" but less jumpy, so disable for now.
+ButtonNames = { "B", "Y", "Down", "Left", "Right" } -- Spin jump is "A" but less jumpy, so disable for now.
 
 math.randomseed(os.time()) -- unix timestamp to initialize seed
 burn_a_bunch = os.time() + 2 -- try for 2 seconds
@@ -870,6 +870,15 @@ function evaluateCurrent()
 	inputs = getInputs()
 	controller = evaluateThoughts(eval_cultivar.brain, inputs)
 
+	if controller["P1 Left"] and controller["P1 Right"] then
+		controller["P1 Left"] = false
+		controller["P1 Right"] = false
+	end
+	if controller["P1 B"] and controller["P1 Down"] then
+		controller["P1 B"] = false
+		controller["P1 Down"] = false
+	end
+
 	joypad.set(controller)
 end
 if pool == nil then
@@ -1009,7 +1018,7 @@ function displayCritter(cultivar)
 	gui.drawBox(49-Mario_Map_Offset,71,51-Mario_Map_Offset,78,0x00000000,0x80FF0000)
 
 	if forms.ischecked(showMutationRates) then
-		local pos = 82
+		local pos = 100
 		local sigFigured = 0
 		for mutation,rate in pairs(cultivar.mutationRates) do
 			sigFigured = math.floor(0.5 + 10000 * rate) / 10000
