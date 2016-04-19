@@ -55,7 +55,7 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.85 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.03 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
@@ -638,11 +638,11 @@ function reproduce(BaseGatunek)
 		local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
 		local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
 		local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-		local CompatibilityAttempts = math.ceil(GenerationGain / 8)
+		local CompatibilityAttempts = math.ceil(GenerationGain / 3)
 		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		local dw = DeltaWeights*weights(genetic_material, blind_date)
 		local DiffComposite = dd + dw
-		if DiffComposite < (2 * DeltaThreshold) then
+		if DiffComposite < (7 * DeltaThreshold) then
 			if DiffComposite > 0 and DiffComposite > WorstDiff then
 				table.insert(PotentialMates, blind_date)
 				WorstDiff = dd
@@ -655,7 +655,7 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, blind_date)
 			DiffComposite = dd + dw
-			if DiffComposite < (2 * DeltaThreshold) then
+			if DiffComposite < (7 * DeltaThreshold) then
 				if DiffComposite > 0 and DiffComposite > WorstDiff then
 					table.insert(PotentialMates, blind_date)
 					WorstDiff = dd
