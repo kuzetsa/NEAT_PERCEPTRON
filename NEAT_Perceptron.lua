@@ -55,7 +55,7 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = DeltaThreshold = 0.564 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.564 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.03 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
