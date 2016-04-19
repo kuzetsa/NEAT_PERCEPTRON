@@ -1061,9 +1061,9 @@ function displayCritter(cultivar)
 		if gene.enabled then
 			local c1 = cells[gene.into]
 			local c2 = cells[gene.out]
-			local opacity = 0xCC000000
+			local opacity = 0xFF000000
 			if c1.value == 0 then
-				opacity = 0x77000000
+				opacity = 0x33000000
 			end
 			local color = 0x80-math.floor(math.abs(sigmoid(gene.weight))*0x80)
 			if gene.weight > 0 then 
