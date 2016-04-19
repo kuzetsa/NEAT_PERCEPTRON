@@ -58,10 +58,23 @@ DeltaWeights = 0.5 -- Different signal strength between various neurons.
 DeltaThreshold = 0.564 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-tmpDormancyNegation = 0.02 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
+SqrtFive = math.sqrt(5)
+SF1 = SqrtFive + 1
+Phi = SF1 / 2 -- golden ratio (Phi)
+LogPhi = math.log(Phi)
+PiThLogPhi = LogPhi / math.pi
+PhiTh = 2 / SF1 -- reciprocal (1 / Phi)
+LogPhiTh = math.log(PhiTh)
+PiThLogPhiTh = LogPhiTh / math.pi
+
+BaselineDormancyNegation = 0.02 -- STARTING rate: disable / [re]enable 2% of active/dormant genes
+DormancyLog = math.log(BaselineDormancyNegation)
+PruneRecomplexifyLevel = math.exp(3 * LogPiPhiTh + DormancyLog)
+PhasedSimplifyLevel = math.exp(2 * LogPiPhiTh + DormancyLog)
+
 mutationBaseRates = {}
-mutationBaseRates["DormancyToggle"] = tmpDormancyNegation -- this value changes over time
-mutationBaseRates["DormancyInvert"] = tmpDormancyNegation -- changes too, but differently
+mutationBaseRates["DormancyToggle"] = BaselineDormancyNegation -- this value changes over time
+mutationBaseRates["DormancyInvert"] = BaselineDormancyNegation -- changes too, but differently
 mutationBaseRates["BiasMutation"] = 0.9
 mutationBaseRates["NodeMutation"] = 0.7
 mutationBaseRates["LinkSynapse"] = 2.5
@@ -505,9 +518,9 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
 		return
 	elseif GeneMaybeEnabled then
-		FlipChance = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
+		FlipChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) * PhiTh
 	else
-		FlipChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is higher
+		FlipChance = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) * Phi
 	end
 	FlipCount = FlipChance * Inputs
 	while FlipCount > 0 do
@@ -538,8 +551,11 @@ function mutate(cultivar)
 	if cultivar.mutationRates["MutateSynapse"] > math.random() then
 		SynapseMutate(cultivar) -- neural interconnect signal strength (synapse) re-tune
 	end
-	local PhasedSearch = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
-	if PhasedSearch < 1.0 then
+	local PhasedSearch = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"])
+	if PhasedSearch < PruneRecomplexifyLevel then
+		cultivar.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyInvert"]
+		cultivar.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]
+	elseif PhasedSearch > PhasedSimplifyLevel then
 		local p = cultivar.mutationRates["LinkSynapse"]
 		while p > 0 do
 			if p > math.random() then
