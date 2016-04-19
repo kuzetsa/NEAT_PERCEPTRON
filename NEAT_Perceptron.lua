@@ -38,34 +38,34 @@ NyoomCumulator = 0
 blockagecounter = 0 -- [re]initialize at start of a run
 
 CurrentSwarm = 0 -- ACTUAL population size
-SpareMajority = 254.35 -- must be less than 256... hardcoded in removeWeakGatunki()
-GenerationGain = 555 -- Related to how quickly the population grows
-AntiGain = 111 -- Does more than the GenerationGain itself
-InfertilityScale = 4 -- Prevent sudden growth spike
+SpareMajority = 254.348 -- must be less than 256... hardcoded in removeWeakGatunki()
+GenerationGain = 60 -- Related to how quickly the population grows
+AntiGain = 25 -- Does more than the GenerationGain itself
+InfertilityScale = 1 -- Prevent sudden growth spike
 RecentFitness = 0 -- false positive rejection
 CutoffShift = 239.0690 -- be very careful modifying this value
 SurvivorTicket = 9
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
-StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
-SevenPercent = 7/100 -- 7 in 100 chance
-LogSevenHundred = math.log(SevenPercent)
-LogPasses = LogSevenHundred / StaleGatunek
+StaleGatunek = 6 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+FourteenPercent = 1/7 -- 1 in 7 chance, aprox 14.3%
+LogFourteen = math.log(FourteenPercent)
+LogPasses = LogFourteen / StaleGatunek
 PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.6 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.7 -- 70% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-tmpDormancyNegation = 0.05 -- STARTING rate: disable / [re]enable 5% of active/dormant genes
+tmpDormancyNegation = 0.03 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation -- this value changes over time
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation -- changes too, but differently
-mutationBaseRates["BiasMutation"] = 0.4
+mutationBaseRates["BiasMutation"] = 0.6
 mutationBaseRates["NodeMutation"] = 0.7
-mutationBaseRates["LinkSynapse"] = 1.9
-mutationBaseRates["MutateSynapse"] = 0.6
+mutationBaseRates["LinkSynapse"] = 2.5
+mutationBaseRates["MutateSynapse"] = 0.8
 mutationBaseRates["StepSize"] = 0.16
 
 StatusRegisterPrimary = 0x42
@@ -638,11 +638,11 @@ function reproduce(BaseGatunek)
 		local allGatunki = pool.Gatunki -- Maybe there's a compatible match in the gene pool O_O
 		local anygatunek = allGatunki[math.random(1, #allGatunki)] -- potentional canidate (random)
 		local blind_date = anygatunek.cultivars[math.random(1, #anygatunek.cultivars)]
-		local CompatibilityAttempts = math.ceil(GenerationGain / 8)
+		local CompatibilityAttempts = math.ceil(GenerationGain / 3)
 		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		local dw = DeltaWeights*weights(genetic_material, blind_date)
 		local DiffComposite = dd + dw
-		if DiffComposite < (2 * DeltaThreshold) then
+		if DiffComposite < (7 * DeltaThreshold) then
 			if DiffComposite > 0 and DiffComposite > WorstDiff then
 				table.insert(PotentialMates, blind_date)
 				WorstDiff = dd
@@ -655,7 +655,7 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, blind_date)
 			DiffComposite = dd + dw
-			if DiffComposite < (2 * DeltaThreshold) then
+			if DiffComposite < (7 * DeltaThreshold) then
 				if DiffComposite > 0 and DiffComposite > WorstDiff then
 					table.insert(PotentialMates, blind_date)
 					WorstDiff = dd
