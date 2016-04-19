@@ -165,7 +165,7 @@ function getInputs()
 
 	if blockage == 5 or blockage == 1 then
 		blockagecounter = 10
-	elseif blockage == 4 and blockagecounter <= 0 and GroundTouch ~= 0 and then
+	elseif blockage == 4 and blockagecounter <= 0 and GroundTouch ~= 0 then
 		blockagecounter = 0 -- prevent negative runaway
 		InTheAir = 0 -- Zero means on the ground (default)
 	else
