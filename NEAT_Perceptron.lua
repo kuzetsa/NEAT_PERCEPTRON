@@ -58,7 +58,7 @@ DeltaWeights = 0.5 -- Different signal strength between various neurons.
 DeltaThreshold = 0.564 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
-tmpDormancyNegation = 0.03 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
+tmpDormancyNegation = 0.02 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation -- this value changes over time
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation -- changes too, but differently
@@ -428,7 +428,6 @@ end
 
 function SynapseMutate(cultivar)
 	local step = cultivar.mutationRates["StepSize"]
-
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
 		if gene.enabled then -- dormant genes don't mutate
@@ -539,26 +538,29 @@ function mutate(cultivar)
 	if cultivar.mutationRates["MutateSynapse"] > math.random() then
 		SynapseMutate(cultivar) -- neural interconnect signal strength (synapse) re-tune
 	end
-	local p = cultivar.mutationRates["LinkSynapse"]
-	while p > 0 do
-		if p > math.random() then
-			LinkSynapse(cultivar, false)
+	local PhasedSearch = math.min(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) -- whichever is lower
+	if PhasedSearch < 1.0 then
+		local p = cultivar.mutationRates["LinkSynapse"]
+		while p > 0 do
+			if p > math.random() then
+				LinkSynapse(cultivar, false)
+			end
+			p = p - 1
 		end
-		p = p - 1
-	end
-	p = cultivar.mutationRates["BiasMutation"]
-	while p > 0 do
-		if p > math.random() then
-			LinkSynapse(cultivar, true) -- connection is forced to originate at bias node
+		p = cultivar.mutationRates["BiasMutation"]
+		while p > 0 do
+			if p > math.random() then
+				LinkSynapse(cultivar, true) -- connection is forced to originate at bias node
+			end
+			p = p - 1
 		end
-		p = p - 1
-	end
-	p = cultivar.mutationRates["NodeMutation"]
-	while p > 0 do
-		if p > math.random() then
-			nodeMutate(cultivar)
+		p = cultivar.mutationRates["NodeMutation"]
+		while p > 0 do
+			if p > math.random() then
+				nodeMutate(cultivar)
+			end
+			p = p - 1
 		end
-		p = p - 1
 	end
 	enableDisableMutate(cultivar, false)
 	enableDisableMutate(cultivar, true)
