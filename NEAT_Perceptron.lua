@@ -69,8 +69,8 @@ PiThLogPhiTh = LogPhiTh / math.pi
 
 BaselineDormancyNegation = 0.02 -- STARTING rate: disable / [re]enable 2% of active/dormant genes
 DormancyLog = math.log(BaselineDormancyNegation)
-PruneRecomplexifyLevel = math.exp(3 * LogPiPhiTh + DormancyLog)
-PhasedSimplifyLevel = math.exp(2 * LogPiPhiTh + DormancyLog)
+PruneRecomplexifyLevel = math.exp(3 * PiThLogPhiTh + DormancyLog)
+PhasedSimplifyLevel = math.exp(2 * PiThLogPhiTh + DormancyLog)
 
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = BaselineDormancyNegation -- this value changes over time
