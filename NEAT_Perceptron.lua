@@ -30,7 +30,7 @@ InputSize = (BoxRadius*2+1)*(BoxRadius*2+1)
 Forward_Looking = math.floor(0.8 * 16 * BoxRadius) -- vision tweak
 Mario_Map_Offset = math.floor(0.8 * 5 * BoxRadius) -- debug window tweak
 
-Inputs = InputSize+1 -- extra spot is for the bias cell
+Inputs = InputSize+1+3 -- input for the bias cell, and 3 experimental inputs
 Outputs = #ButtonNames
 
 Nyoom = 0
@@ -55,14 +55,14 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.3 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = DeltaThreshold = 0.564 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 tmpDormancyNegation = 0.03 -- STARTING rate: disable / [re]enable 3% of active/dormant genes
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = tmpDormancyNegation -- this value changes over time
 mutationBaseRates["DormancyInvert"] = tmpDormancyNegation -- changes too, but differently
-mutationBaseRates["BiasMutation"] = 0.6
+mutationBaseRates["BiasMutation"] = 0.9
 mutationBaseRates["NodeMutation"] = 0.7
 mutationBaseRates["LinkSynapse"] = 2.5
 mutationBaseRates["MutateSynapse"] = 0.8
@@ -150,9 +150,46 @@ function getInputs()
 			end
 		end
 	end
+
 	local RawSpeed = memory.read_s8(0x7B) -- full walking is ~2.4 (full run is ~5.6)
-	local tmp = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
-	Nyoom = math.max(tmp, 0) -- sliding backwards is ignored by fitness algorithm
+	local CookedSpeed = RawSpeed / 8.324 -- this affects score EVERY FRAME!!!
+	Nyoom = math.max(CookedSpeed, 0) -- sliding backwards is ignored by fitness algorithm
+
+	inputs[#inputs+1] = 0 -- velocity, X-axis (speed)
+	inputs[#inputs] = CookedSpeed -- potentially used for biassing neural net :)
+
+	local GroundTouch = memory.readbyte(0x13EF) -- 0x01 = touching / standing on the ground
+	local blockage = memory.readbyte(0x77) -- bitmap SxxMUDLR, "M" = in a block (middle)
+	local JumpFlag = 0
+	local InTheAir = 0
+
+	if blockage == 5 or blockage == 1 then
+		blockagecounter = 10
+	elseif blockage == 4 and blockagecounter <= 0 and GroundTouch ~= 0 and then
+		blockagecounter = 0 -- prevent negative runaway
+		InTheAir = 0 -- Zero means on the ground (default)
+	else
+		blockagecounter = blockagecounter - 1
+	end
+
+	if blockagecounter > 0 and GroundTouch ~= 0 and RawSpeed < 5 then -- stuck, so handle it
+		if pool.EvaluatedFrames%6 > 2 then
+			JumpFlag = -1 -- Mission critical: Jump ASAP (negative bias)
+		else
+			JumpFlag = 1 -- stuck, so trigger a jump.
+		end
+	elseif blockagecounter > 0 and GroundTouch == 0 then -- Jump REALLY HIGH (if possible, over the obstacle)
+		JumpFlag = 1
+		InTheAir = 1
+	elseif GroundTouch == 0 and blockage == 0 then -- mario is in the air. period.
+		InTheAir = 1
+	end
+
+	inputs[#inputs+1] = 0 -- Obstacle Jump trigger
+	inputs[#inputs] = JumpFlag
+	inputs[#inputs+1] = 0 -- In-The-Air status register
+	inputs[#inputs] = InTheAir
+
 	return inputs
 end
 
@@ -642,7 +679,7 @@ function reproduce(BaseGatunek)
 		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		local dw = DeltaWeights*weights(genetic_material, blind_date)
 		local DiffComposite = dd + dw
-		if DiffComposite < (7 * DeltaThreshold) then
+		if DiffComposite < (3 * DeltaThreshold) then
 			if DiffComposite > 0 and DiffComposite > WorstDiff then
 				table.insert(PotentialMates, blind_date)
 				WorstDiff = dd
@@ -655,7 +692,7 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, blind_date)
 			DiffComposite = dd + dw
-			if DiffComposite < (7 * DeltaThreshold) then
+			if DiffComposite < (3 * DeltaThreshold) then
 				if DiffComposite > 0 and DiffComposite > WorstDiff then
 					table.insert(PotentialMates, blind_date)
 					WorstDiff = dd
