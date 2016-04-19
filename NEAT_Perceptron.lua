@@ -459,7 +459,7 @@ function LinkSynapse(cultivar, forceBias)
 	newLink.into = neuron1
 	newLink.out = neuron2
 	if forceBias then
-		newLink.into = Inputs -- the last one is the bias node
+		newLink.into = math.random((InputSize+1), Inputs)
 	end
 	if containsLink(cultivar.genes, newLink) then
 		return
