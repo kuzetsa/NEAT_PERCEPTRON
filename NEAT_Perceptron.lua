@@ -944,6 +944,7 @@ end
 function displayCritter(cultivar)
 	local network = cultivar.brain -- artificial neural network
 	local cells = {}
+	local skiplast = 0
 	local blacken = 0
 	local i = 1
 	local cell = {}
@@ -956,6 +957,25 @@ function displayCritter(cultivar)
 			cells[i] = cell
 			i = i + 1
 		end
+	end
+		cell = {} -- Velocity vector (X-axis)
+		cell.x = 50+5*network.neurons[i].value
+		cell.y = 70+5*(BoxRadius+1)
+		blacken = math.abs(network.neurons[i].value / 5)
+		if blacken < 0.1 then
+			blacken = -1
+		end
+		cell.value = blacken -- zero handler for display
+		cells[i] = cell
+		i = i + 1
+
+	for skiplast =i,(Inputs-1) do -- Automagically knows how many more perceptron!!!
+		cell = {}
+		cell.x = 50+5*(BoxRadius+1)
+		cell.y = 70+5*(skiplast-(i+BoxRadius))
+		cell.value = network.neurons[skiplast].value
+		cells[skiplast] = cell
+
 	end
 	local biasCell = {}
 	biasCell.x = 80
@@ -1055,7 +1075,7 @@ function displayCritter(cultivar)
 	gui.drawBox(49-Mario_Map_Offset,71,51-Mario_Map_Offset,78,0x00000000,0x80FF0000)
 
 	if forms.ischecked(showMutationRates) then
-		local pos = 100
+		local pos = 82
 		local sigFigured = 0
 		for mutation,rate in pairs(cultivar.mutationRates) do
 			sigFigured = math.floor(0.5 + 10000 * rate) / 10000
