@@ -56,9 +56,10 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
 DeltaThreshold = 0.42 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+CrossoverChance = 0.87 -- 87% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 SqrtFive = math.sqrt(5)
+SqrtPi = math.sqrt(math.pi)
 SF1 = SqrtFive + 1
 Phi = SF1 / 2 -- golden ratio (Phi)
 SqrtPhi = math.sqrt(Phi)
@@ -69,10 +70,10 @@ SqrtPhiTh = math.sqrt(PhiTh)
 LogPhiTh = math.log(PhiTh)
 PiThLogPhiTh = LogPhiTh / math.pi
 
-BaselineDormancyNegation = 0.02 -- STARTING rate: disable / [re]enable 2% of active/dormant genes
+BaselineDormancyNegation = SqrtFive / 100 -- STARTING rate: disable / [re]enable 2.236% of active/dormant genes
 DormancyLog = math.log(BaselineDormancyNegation)
-PruneRecomplexifyLevel = math.exp(SqrtPhi * PiThLogPhiTh + DormancyLog)
-PhasedSimplifyLevel = math.exp(SqrtPhiTh * PiThLogPhiTh + DormancyLog)
+PruneRecomplexifyLevel = math.exp(SqrtPi * SqrtPhi * PiThLogPhiTh + DormancyLog)
+PhasedSimplifyLevel = math.exp(SqrtPi * SqrtPhiTh * PiThLogPhiTh + DormancyLog)
 
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = BaselineDormancyNegation -- this value changes over time
