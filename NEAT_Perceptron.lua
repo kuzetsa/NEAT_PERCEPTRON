@@ -77,9 +77,9 @@ PhasedSimplifyLevel = math.exp(SqrtPhiTh * PiThLogPhiTh + DormancyLog)
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = BaselineDormancyNegation -- this value changes over time
 mutationBaseRates["DormancyInvert"] = BaselineDormancyNegation -- changes too, but differently
-mutationBaseRates["BiasMutation"] = 0.9
-mutationBaseRates["NodeMutation"] = 0.7
-mutationBaseRates["LinkSynapse"] = 2.5
+mutationBaseRates["BiasMutation"] = 1.3
+mutationBaseRates["NodeMutation"] = 0.8
+mutationBaseRates["LinkSynapse"] = 5.15
 mutationBaseRates["MutateSynapse"] = 0.236
 mutationBaseRates["StepSize"] = 0.16
 
