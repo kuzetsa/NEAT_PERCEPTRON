@@ -55,7 +55,7 @@ PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mu
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.7 -- Mutations WILL happen. Embrace change.
+DeltaThreshold = 0.42 -- Mutations WILL happen. Embrace change.
 CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 SqrtFive = math.sqrt(5)
@@ -393,7 +393,7 @@ function crossover(g1, g2)
 	end
 	child.maxneuron = math.max(g1.maxneuron,g2.maxneuron)
 
-	for mutation,rate in pairs(g1.mutationRates) do
+	for mutation,rate in pairs(mutationBaseRates) do
 		child.mutationRates[mutation] = rate
 	end
 	return child
@@ -714,7 +714,7 @@ function reproduce(BaseGatunek)
 		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		local dw = DeltaWeights*weights(genetic_material, blind_date)
 		local DiffComposite = dd + dw
-		if DiffComposite < (3 * DeltaThreshold) then
+		if DiffComposite < (5 * DeltaThreshold) then
 			if DiffComposite > 0 and DiffComposite > WorstDiff then
 				table.insert(PotentialMates, blind_date)
 				WorstDiff = dd
@@ -727,7 +727,7 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, blind_date)
 			DiffComposite = dd + dw
-			if DiffComposite < (3 * DeltaThreshold) then
+			if DiffComposite < (5 * DeltaThreshold) then
 				if DiffComposite > 0 and DiffComposite > WorstDiff then
 					table.insert(PotentialMates, blind_date)
 					WorstDiff = dd
