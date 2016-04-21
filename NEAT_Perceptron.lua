@@ -555,8 +555,8 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 end
 
 function mutate(cultivar)
-	OhEightSixEight = math.log(0.868)
-	OneOneThreeFive = math.log(1.135)
+	OhEightSixEight = math.log(0.863)
+	OneOneThreeFive = math.log(1.137)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		unHardcode = math.random()
 		if math.random(1,2) == 1 then
@@ -1276,7 +1276,8 @@ while true do
 	getPositions()
 
 	-- This lets us know if mario is still alive and game is active :)
-	StatusRegisterPrimary = memory.readbyte(0x100) + memory.readbyte(0x9D)
+	AniCk = memory.readbyte(0x9D)
+	StatusRegisterPrimary = memory.readbyte(0x100) + AniCk
 	StatusRegisterSecondary = memory.readbyte(0x13D9)
 	StatusRegisterComposite = StatusRegisterPrimary + StatusRegisterSecondary
 
@@ -1293,15 +1294,15 @@ while true do
 	elseif StatusRegisterSecondary > 0 and StatusRegisterPrimary == 0x14 then
 		timeout = TimeoutConstant
 	elseif StatusRegisterPrimary ~= 0x14 and pool.EvaluatedFrames > 1 then
-		if memory.readbyte(0x9D) == 0x30 then -- death animation
-			timeout = timeout - (50 * TimeoutConstant) -- rapid-ify timeout
-		elseif memory.readbyte(0x9D) == 0x0C then -- Level end
-			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
-		elseif memory.readbyte(0x9D) == 0x2F then -- powerup animation
+		if AniCk == 0x30 then
+			timeout = timeout - (50 * TimeoutConstant) -- death animation
+		elseif AniCk == 0x0C or AniCk == 0x40 then
+			timeout = timeout - (50 * TimeoutConstant) -- Level end
+		elseif AniCk == 0x2F then -- powerup animation
 			timeout = TimeoutConstant
 		else
 			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
-			console.writeline("exception:  [0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. memory.readbyte(0x9D) .. "  -  [13D9]/" .. memory.readbyte(0x13D9))
+			console.writeline("exception:  [0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. AniCk .. "  -  [13D9]/" .. memory.readbyte(0x13D9))
 		end
 	end
 	timeout = timeout - 1
