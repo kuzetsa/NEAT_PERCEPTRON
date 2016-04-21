@@ -1296,7 +1296,7 @@ while true do
 	elseif StatusRegisterPrimary ~= 0x14 and pool.EvaluatedFrames > 1 then
 		if AniCk == 0x30 then
 			timeout = timeout - (50 * TimeoutConstant) -- death animation
-		elseif AniCk == 0x0C OR AniCk == 0x40 then
+		elseif AniCk == 0x0C or AniCk == 0x40 then
 			timeout = timeout - (50 * TimeoutConstant) -- Level end
 		elseif AniCk == 0x2F then -- powerup animation
 			timeout = TimeoutConstant
