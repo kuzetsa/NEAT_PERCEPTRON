@@ -555,8 +555,8 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 end
 
 function mutate(cultivar)
-	OhEightSixEight = math.log(0.868)
-	OneOneThreeFive = math.log(1.135)
+	OhEightSixEight = math.log(0.863)
+	OneOneThreeFive = math.log(1.137)
 	for mutation,rate in pairs(cultivar.mutationRates) do
 		unHardcode = math.random()
 		if math.random(1,2) == 1 then
