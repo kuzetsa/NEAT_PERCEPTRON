@@ -51,34 +51,37 @@ StaleGatunek = 6 -- Assume unbreedable if the rank stays low (discard rubbish ge
 FourteenPercent = 1/7 -- 1 in 7 chance, aprox 14.3%
 LogFourteen = math.log(FourteenPercent)
 LogPasses = LogFourteen / StaleGatunek
-PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
+DecayAccumulator = math.exp(LogPasses) -- How quickly will "certain things" [tm] occur
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.564 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.95 -- 95% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.42 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.87 -- 87% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 SqrtFive = math.sqrt(5)
+SqrtPi = math.sqrt(math.pi)
 SF1 = SqrtFive + 1
 Phi = SF1 / 2 -- golden ratio (Phi)
+SqrtPhi = math.sqrt(Phi)
 LogPhi = math.log(Phi)
 PiThLogPhi = LogPhi / math.pi
 PhiTh = 2 / SF1 -- reciprocal (1 / Phi)
+SqrtPhiTh = math.sqrt(PhiTh)
 LogPhiTh = math.log(PhiTh)
 PiThLogPhiTh = LogPhiTh / math.pi
 
-BaselineDormancyNegation = 0.02 -- STARTING rate: disable / [re]enable 2% of active/dormant genes
+BaselineDormancyNegation = SqrtFive / 100 -- STARTING rate: disable / [re]enable 2.236% of active/dormant genes
 DormancyLog = math.log(BaselineDormancyNegation)
-PruneRecomplexifyLevel = math.exp(3 * PiThLogPhiTh + DormancyLog)
-PhasedSimplifyLevel = math.exp(2 * PiThLogPhiTh + DormancyLog)
+PruneRecomplexifyLevel = math.exp(SqrtPi * SqrtPhi * PiThLogPhiTh + DormancyLog)
+PhasedSimplifyLevel = math.exp(SqrtPi * SqrtPhiTh * PiThLogPhiTh + DormancyLog)
 
 mutationBaseRates = {}
 mutationBaseRates["DormancyToggle"] = BaselineDormancyNegation -- this value changes over time
 mutationBaseRates["DormancyInvert"] = BaselineDormancyNegation -- changes too, but differently
-mutationBaseRates["BiasMutation"] = 0.9
-mutationBaseRates["NodeMutation"] = 0.7
-mutationBaseRates["LinkSynapse"] = 2.5
-mutationBaseRates["MutateSynapse"] = 0.8
+mutationBaseRates["BiasMutation"] = 1.3
+mutationBaseRates["NodeMutation"] = 0.8
+mutationBaseRates["LinkSynapse"] = 5.15
+mutationBaseRates["MutateSynapse"] = 0.236
 mutationBaseRates["StepSize"] = 0.16
 
 StatusRegisterPrimary = 0x42
@@ -390,9 +393,14 @@ function crossover(g1, g2)
 		end
 	end
 	child.maxneuron = math.max(g1.maxneuron,g2.maxneuron)
-
-	for mutation,rate in pairs(g1.mutationRates) do
-		child.mutationRates[mutation] = rate
+	if DecayAccumulator > math.random() then -- Same rate for synapse tuning
+		for mutation,rate in pairs(g1.mutationRates) do
+			child.mutationRates[mutation] = rate
+		end
+	else -- Trigger a reset (reinitialize mutation decay rates)
+		for mutation,rate in pairs(mutationBaseRates) do
+			child.mutationRates[mutation] = rate
+		end
 	end
 	return child
 end
@@ -444,9 +452,9 @@ function SynapseMutate(cultivar)
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
 		if gene.enabled then -- dormant genes don't mutate
-			if PerturbChance > math.random() then
+			if DecayAccumulator > math.random() then
 				gene.weight = gene.weight + math.random() * step*2 - step
-			else
+			else -- Trigger a reset (reinitialize synapses with random weights)
 				gene.weight = math.random()*2.832-1.416
 			end
 		end
@@ -508,6 +516,20 @@ function nodeMutate(cultivar)
 	table.insert(cultivar.genes, gene2)
 end
 
+function PruneGenes(cultivar)
+	local survived = {}
+	for _,gene in pairs(cultivar.genes) do
+		if gene.enabled == true then
+			table.insert(survived, gene)
+		end
+	end
+	if next(survived) == nil then
+		return
+	else
+		cultivar.genes = survived
+	end
+end
+
 function enableDisableMutate(cultivar, GeneMaybeEnabled)
 	local candidates = {}
 	for _,gene in pairs(cultivar.genes) do
@@ -515,7 +537,7 @@ function enableDisableMutate(cultivar, GeneMaybeEnabled)
 			table.insert(candidates, gene)
 		end
 	end
-	if next(candidates) == nil then -- checking for empty table "the lua way" [tm]
+	if next(candidates) == nil then
 		return
 	elseif GeneMaybeEnabled then
 		FlipChance = math.max(cultivar.mutationRates["DormancyInvert"], cultivar.mutationRates["DormancyToggle"]) * PhiTh
@@ -555,6 +577,7 @@ function mutate(cultivar)
 	if PhasedSearch < PruneRecomplexifyLevel then
 		cultivar.mutationRates["DormancyInvert"] = mutationBaseRates["DormancyInvert"]
 		cultivar.mutationRates["DormancyToggle"] = mutationBaseRates["DormancyToggle"]
+		PruneGenes(cultivar)
 	elseif PhasedSearch > PhasedSimplifyLevel then
 		local p = cultivar.mutationRates["LinkSynapse"]
 		while p > 0 do
@@ -697,7 +720,7 @@ function reproduce(BaseGatunek)
 		local dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 		local dw = DeltaWeights*weights(genetic_material, blind_date)
 		local DiffComposite = dd + dw
-		if DiffComposite < (3 * DeltaThreshold) then
+		if DiffComposite < (5 * DeltaThreshold) then
 			if DiffComposite > 0 and DiffComposite > WorstDiff then
 				table.insert(PotentialMates, blind_date)
 				WorstDiff = dd
@@ -710,7 +733,7 @@ function reproduce(BaseGatunek)
 			dd = DeltaDisjoint*disjoint(genetic_material, blind_date) -- [in]compatibility?
 			dw = DeltaWeights*weights(genetic_material, blind_date)
 			DiffComposite = dd + dw
-			if DiffComposite < (3 * DeltaThreshold) then
+			if DiffComposite < (5 * DeltaThreshold) then
 				if DiffComposite > 0 and DiffComposite > WorstDiff then
 					table.insert(PotentialMates, blind_date)
 					WorstDiff = dd
@@ -778,7 +801,7 @@ function removeWeakGatunki()
 			end
 		end
 	end
-	if next(survived) == nil then -- checking for empty table "the lua way" [tm]
+	if next(survived) == nil then
 		local FreshGatunek = newGatunek() -- epic fail, replace with fresh n00b 
 		table.insert(FreshGatunek.cultivars, basicCritter())
 		table.insert(survived, FreshGatunek)
@@ -1288,7 +1311,7 @@ while true do
 		timeoutBonus = 1 -- sanitized
 	end
 	local score = memory.read_u24_le(0x0F34) -- literal in-game score
-	pool.RealtimeFitness = 250 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.2145)
+	pool.RealtimeFitness = 250 + score + math.ceil(NyoomCumulator) - math.ceil(pool.EvaluatedFrames * 2.46)
 
 	if (timeout + timeoutBonus) < 0 or pool.RealtimeFitness <= 0 then
 		fitness = pool.RealtimeFitness -- local (non-realtime) fitness
