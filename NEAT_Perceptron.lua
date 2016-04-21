@@ -51,7 +51,7 @@ StaleGatunek = 6 -- Assume unbreedable if the rank stays low (discard rubbish ge
 FourteenPercent = 1/7 -- 1 in 7 chance, aprox 14.3%
 LogFourteen = math.log(FourteenPercent)
 LogPasses = LogFourteen / StaleGatunek
-PerturbChance = math.exp(LogPasses) -- Chance during SynapseMutate() genes to mutate (by up to StepSize)
+DecayAccumulator = math.exp(LogPasses) -- How quickly will "certain things" [tm] occur
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
@@ -393,9 +393,14 @@ function crossover(g1, g2)
 		end
 	end
 	child.maxneuron = math.max(g1.maxneuron,g2.maxneuron)
-
-	for mutation,rate in pairs(mutationBaseRates) do
-		child.mutationRates[mutation] = rate
+	if DecayAccumulator > math.random() then -- Same rate for synapse tuning
+		for mutation,rate in pairs(g1.mutationRates) do
+			child.mutationRates[mutation] = rate
+		end
+	else -- Trigger a reset (reinitialize mutation decay rates)
+		for mutation,rate in pairs(mutationBaseRates) do
+			child.mutationRates[mutation] = rate
+		end
 	end
 	return child
 end
@@ -447,9 +452,9 @@ function SynapseMutate(cultivar)
 	for i=1,#cultivar.genes do
 		local gene = cultivar.genes[i]
 		if gene.enabled then -- dormant genes don't mutate
-			if PerturbChance > math.random() then
+			if DecayAccumulator > math.random() then
 				gene.weight = gene.weight + math.random() * step*2 - step
-			else
+			else -- Trigger a reset (reinitialize synapses with random weights)
 				gene.weight = math.random()*2.832-1.416
 			end
 		end
