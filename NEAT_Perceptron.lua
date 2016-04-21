@@ -55,8 +55,8 @@ DecayAccumulator = math.exp(LogPasses) -- How quickly will "certain things" [tm]
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.42 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.87 -- 87% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.183 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.65 -- 65% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 SqrtFive = math.sqrt(5)
 SqrtPi = math.sqrt(math.pi)
