@@ -1293,15 +1293,16 @@ while true do
 	elseif StatusRegisterSecondary > 0 and StatusRegisterPrimary == 0x14 then
 		timeout = TimeoutConstant
 	elseif StatusRegisterPrimary ~= 0x14 and pool.EvaluatedFrames > 1 then
-		if memory.readbyte(0x9D) == 0x30 then -- death animation
-			timeout = timeout - (50 * TimeoutConstant) -- rapid-ify timeout
-		elseif memory.readbyte(0x9D) == 0x0C then -- Level end
-			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
-		elseif memory.readbyte(0x9D) == 0x2F then -- powerup animation
+		AnimationCheck = memory.readbyte(0x9D)
+		if AniCk == 0x30 then
+			timeout = timeout - (50 * TimeoutConstant) -- death animation
+		elseif AniCk == 0x0C OR AniCk == 0x40 then
+			timeout = timeout - (50 * TimeoutConstant) -- Level end
+		elseif AniCk == 0x2F then -- powerup animation
 			timeout = TimeoutConstant
 		else
 			timeout = timeout - (50 * TimeoutConstant) -- unhandler event -- end simulation & log status:
-			console.writeline("exception:  [0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. memory.readbyte(0x9D) .. "  -  [13D9]/" .. memory.readbyte(0x13D9))
+			console.writeline("exception:  [0100]/" .. memory.readbyte(0x100) .. "  -  [009D]/" .. AniCk .. "  -  [13D9]/" .. memory.readbyte(0x13D9))
 		end
 	end
 	timeout = timeout - 1
