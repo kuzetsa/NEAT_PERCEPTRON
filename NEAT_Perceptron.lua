@@ -47,16 +47,16 @@ CutoffShift = 239.0690 -- be very careful modifying this value
 SurvivorTicket = 9
 CutoffRate = (math.log(2 * ((((CutoffShift + 1) ^ 2) / 55555) ^ 3))) ^ 2
 FitnessCutoff = 1
-StaleGatunek = 6 -- Assume unbreedable if the rank stays low (discard rubbish genes)
-FourteenPercent = 1/7 -- 1 in 7 chance, aprox 14.3%
+StaleGatunek = 50 -- Assume unbreedable if the rank stays low (discard rubbish genes)
+FourteenPercent = 1/3 -- 1 in 3 chance (33.3%)
 LogFourteen = math.log(FourteenPercent)
 LogPasses = LogFourteen / StaleGatunek
 DecayAccumulator = math.exp(LogPasses) -- How quickly will "certain things" [tm] occur
 
 DeltaDisjoint = 2.6 -- Newer or older genes (different neural network topology)
 DeltaWeights = 0.5 -- Different signal strength between various neurons.
-DeltaThreshold = 0.42 -- Mutations WILL happen. Embrace change.
-CrossoverChance = 0.87 -- 87% chance... IF GENES ARE COMPATIBLE (otherwise zero)
+DeltaThreshold = 0.183 -- Mutations WILL happen. Embrace change.
+CrossoverChance = 0.65 -- 65% chance... IF GENES ARE COMPATIBLE (otherwise zero)
 
 SqrtFive = math.sqrt(5)
 SqrtPi = math.sqrt(math.pi)
@@ -80,7 +80,7 @@ mutationBaseRates["DormancyToggle"] = BaselineDormancyNegation -- this value cha
 mutationBaseRates["DormancyInvert"] = BaselineDormancyNegation -- changes too, but differently
 mutationBaseRates["BiasMutation"] = 1.3
 mutationBaseRates["NodeMutation"] = 0.8
-mutationBaseRates["LinkSynapse"] = 5.15
+mutationBaseRates["LinkSynapse"] = 3.5
 mutationBaseRates["MutateSynapse"] = 0.236
 mutationBaseRates["StepSize"] = 0.16
 
