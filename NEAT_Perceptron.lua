@@ -1276,7 +1276,8 @@ while true do
 	getPositions()
 
 	-- This lets us know if mario is still alive and game is active :)
-	StatusRegisterPrimary = memory.readbyte(0x100) + memory.readbyte(0x9D)
+	AniCk = memory.readbyte(0x9D)
+	StatusRegisterPrimary = memory.readbyte(0x100) + AniCk
 	StatusRegisterSecondary = memory.readbyte(0x13D9)
 	StatusRegisterComposite = StatusRegisterPrimary + StatusRegisterSecondary
 
@@ -1293,7 +1294,6 @@ while true do
 	elseif StatusRegisterSecondary > 0 and StatusRegisterPrimary == 0x14 then
 		timeout = TimeoutConstant
 	elseif StatusRegisterPrimary ~= 0x14 and pool.EvaluatedFrames > 1 then
-		AnimationCheck = memory.readbyte(0x9D)
 		if AniCk == 0x30 then
 			timeout = timeout - (50 * TimeoutConstant) -- death animation
 		elseif AniCk == 0x0C OR AniCk == 0x40 then
