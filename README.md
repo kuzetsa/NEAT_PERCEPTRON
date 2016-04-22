@@ -17,4 +17,5 @@
 * This included library is MIT licensed<br>(*[JSON-LICENSE.markdown](https://github.com/kuzetsa/NEAT_PERCEPTRON/blob/master/JSON-LICENSE.markdown)*)
 
 ## COPYRIGHT DISCLAIMER: ##
-**This particular LUA implementation is a forked version of MarI/O by SethBling**
+**This particular LUA implementation originally**<br>
+**began as a fork of MarI/O by SethBling, 2015**

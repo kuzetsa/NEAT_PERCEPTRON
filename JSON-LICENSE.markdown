@@ -1,7 +1,7 @@
 The MIT License (MIT)
 =====================
 
-Copyright © 2008-2014 Thomas Harning Jr. <harningt@gmail.com>
+Copyright © 2015 Shunsuke Shimizu (grafi)
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
