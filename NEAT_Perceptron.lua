@@ -1,20 +1,24 @@
--- NEAT PERCEPTRON: a genetic programming / neuro-evolution system...
--- Intended for use with the BizHawk emulator and Super Mario World
--- Make sure you have a save state named "DP1.state" at the beginning of a level,
--- and put a copy in both the Lua folder and the root directory of BizHawk.
+-- NEAT PERCEPTRON: a genetic programming / neuro-evolution system
 
-Filename = "DP1.state" -- or change the filename on this line. Either way is fine :)
+-- Intended for use with the BizHawk emulator and Super Mario World =^_^=
+-- You need a save state named "train.state" at the beginning of a level.
+-- Place a copy in both the Lua folder and the root directory of BizHawk.
 
--- BACKGROUND INFO:
--- https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies
+-- COPYRIGHT / LEGAL DISCLAIMER:
+
+-- NEAT PERCEPTRON is licensed LGPL version 3
+-- http://www.gnu.org/licenses/lgpl-3.0.txt
+
 -- The original NEAT algorithm is under a GPL license (FOSS / Libre)
--- This fork is licensed LGPL version 3 - http://www.gnu.org/licenses/lgpl-3.0.txt
+-- https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies
 
--- COPYRIGHT DISCLAIMER:
--- THIS IS A HEAVILY MODIFIED version (fork) of MarI/O by SethBling
--- Specifically, GUI and logging code, and save/load feature is credits to SethBling
--- My license for this fork is LGPL3, but SethBling has some legal rights too...
--- SethBling, please contact @kuzetsa on twitter I'll do a full rewrite if needed
+-- This lua imlpementation was originally a fork, and began 95% identical to:
+-- "MarI/O by SethBling" -- Credits: Thanks, it was a great idea :)
+
+-- As of April 22nd 2016, this fork has less than 20% overlap in common.
+-- If anything, breaks: https://github.com/kuzetsa/NEAT_PERCEPTRON/issues
+
+Filename = "train.state" -- or change the filename on this line. Either way is fine :)
 
 ButtonNames = { "B", "Y", "Down", "Left", "Right" } -- Spin jump is "A" but less jumpy, so disable for now.
 
@@ -1129,37 +1133,10 @@ end
 
 function writeFile(filename)
 	local file = io.open(filename, "w")
-	file:write(pool.generation .. "\n")
-	file:write(pool.PeakFitness .. "\n")
-	file:write(#pool.Gatunki .. "\n")
-		for n,gatunek in pairs(pool.Gatunki) do
-		file:write(gatunek.topFitness .. "\n")
-		file:write(gatunek.staleness .. "\n")
-		file:write(#gatunek.cultivars .. "\n")
-		for m,cultivar in pairs(gatunek.cultivars) do
-			file:write(cultivar.fitness .. "\n")
-			file:write(cultivar.maxneuron .. "\n")
-			for mutation,rate in pairs(cultivar.mutationRates) do
-				file:write(mutation .. "\n")
-				file:write(rate .. "\n")
-			end
-			file:write("done\n")
-
-			file:write(#cultivar.genes .. "\n")
-			for l,gene in pairs(cultivar.genes) do
-				file:write(gene.into .. " ")
-				file:write(gene.out .. " ")
-				file:write(gene.weight .. " ")
-				file:write(gene.innovation .. " ")
-				if(gene.enabled) then
-					file:write("1\n")
-				else
-					file:write("0\n")
-				end
-			end
-		end
-		end
-		file:close()
+	local JASON = require("lunajson") -- HOMOPHONE!!!
+	local serialized = JASON.encode(pool)
+	file:write(serialized .. "\n") -- welp, that was easy O_O
+	file:close()
 end
 
 function savePool()
@@ -1169,42 +1146,10 @@ end
 
 function loadFile(filename)
 	local file = io.open(filename, "r")
-	pool = newPool()
-	pool.generation = file:read("*number")
-	pool.PeakFitness = file:read("*number")
-	forms.settext(PeakFitnessLabel, "Peak Fitness: " .. math.floor(pool.PeakFitness))
-	local numGatunki = file:read("*number")
-	for loading_index_gatunek=1,numGatunki do
-		local load_gatunek = newGatunek()
-		table.insert(pool.Gatunki, load_gatunek)
-		load_gatunek.topFitness = file:read("*number")
-		load_gatunek.staleness = file:read("*number")
-		local numCritters = file:read("*number")
-		for loading_index_cultivar=1,numCritters do
-			local cultivar = newCritter()
-			table.insert(load_gatunek.cultivars, cultivar)
-			cultivar.fitness = file:read("*number")
-			cultivar.maxneuron = file:read("*number")
-			local line = file:read("*line")
-			while line ~= "done" do
-				cultivar.mutationRates[line] = file:read("*number")
-				line = file:read("*line")
-			end
-			local numGenes = file:read("*number")
-			for loading_index_gene=1,numGenes do
-				local gene = newGene()
-				table.insert(cultivar.genes, gene)
-				local enabled
-				gene.into, gene.out, gene.weight, gene.innovation, enabled = file:read("*number", "*number", "*number", "*number", "*number")
-				if enabled == 0 then
-					gene.enabled = false
-				else
-					gene.enabled = true
-				end
-			end
-		end
-	end
+	local JASON = require("lunajson") -- HOMOPHONE!!!
+	local LineToBeDeserialized = file:read("*line")
 	file:close()
+	pool = JASON.decode(LineToBeDeserialized) -- welp, that was easy O_O
 
 	while fitnessAlreadyMeasured() do
 		nextCritter()
@@ -1240,7 +1185,7 @@ end
 function onExit()
 	forms.destroy(form)
 end
-writeFile("temp.pool")
+writeFile("temp.pool.json")
 
 event.onexit(onExit)
 
@@ -1251,7 +1196,7 @@ showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
 restartButton = forms.button(form, "Restart", initializePool, 5, 77)
 saveButton = forms.button(form, "Save", savePool, 5, 102)
 loadButton = forms.button(form, "Load", loadPool, 80, 102)
-saveLoadFile = forms.textbox(form, Filename .. ".pool", 170, 25, nil, 5, 148)
+saveLoadFile = forms.textbox(form, Filename .. ".pool.json", 170, 25, nil, 5, 148)
 saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
 showBanner = forms.checkbox(form, "Show Banner", 5, 190)
