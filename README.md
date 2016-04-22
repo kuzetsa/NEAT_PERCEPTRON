@@ -1,4 +1,4 @@
-# NEAT_PERCEPTRON
+# NEAT_PERCEPTRON #
 ## a genetic programming / neuro-evolution system ##
 ### Algorithm inspired by NEAT, by Kenneth Stanley ###
 
@@ -9,6 +9,12 @@
 0. http://www.cs.ucf.edu/~kstanley/neat.html
 0. http://nn.cs.utexas.edu/soft-view.php?SoftID=4
 0. http://sharpneat.sourceforge.net/phasedsearch.html
+
+**lunajson-1.1 is used for JSON serialization**
+
+* https://luarocks.org/modules/grafi/lunajson
+* https://github.com/grafi-tt/lunajson
+* This included library is MIT licensed<br>(*[JSON-LICENSE.markdown](https://github.com/kuzetsa/NEAT_PERCEPTRON/blob/master/JSON-LICENSE.markdown)*)
 
 ## COPYRIGHT DISCLAIMER: ##
 **This particular LUA implementation is a forked version of MarI/O by SethBling**
